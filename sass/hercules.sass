@@ -1,0 +1,368 @@
+// Imports
+@import "compass/reset"
+@import "compass/css3/images"
+@import "compass/css3/user-interface"
+@import "susy"
+@import "compass"
+
+
+// Variables
+$total-columns        : 5
+$column-width         : 100%/$total-columns
+$gutter-width         : 3%
+$grid-padding         : $gutter-width
+$universal-padding    : 1.1em
+$off-canvas-width     : 17.5em
+$tablet               : 480px 8
+$computer             : 1025px 12
+
+$main-bg-color        : #262a29
+$sub-bg-color         : #1B1F1E
+
+$dropdown-bg          : #33485c
+
+$main-light-color     : #feffff
+$main-dark-color      : #b5b095
+$sub-dark-color       : #7d8c8d
+$red-link-color       : #c53730
+
+$main-link-color      : #1a7b76
+$hover-link-color     : #28aba1
+$blue-btn-color       : #269bd6
+$green-btn-color      : #16a085
+
+$border-color         : rgba(white,.05)
+$light-border-color   : rgba(white,.1)
+$input-border-color   : #dee1e4
+
+$icons                : sprite-map("icons/*.png", $layout: smart)
+$icons-hd             : sprite-map("icons-hd/*.png")
+$default-border-radius: 7px
+
+
+// Mixins
++border-box-sizing
+=arrow-shape($point)
+    $opposite: opposite-position($point)
+    border: 7px solid transparent
+    border-#{$opposite}: 7px solid $dropdown-bg
+    border-#{$point}: 0
+    height: 0
+    width: 0
+
+
+// Text styles
+html
+    -webkit-font-smoothing: antialiased
+    @extend .medium-font
+    -webkit-text-size-adjust: 100%
+    font-family: sans-serif
+    color: $main-dark-color
+    background: $sub-bg-color
+a
+    +link-colors($main-link-color, $hover-link-color)
+    text-decoration: none
+    outline: none
+.monospace-font
+    font-family: monospace, sans-serif !important
+.main-font-color
+    color: $main-dark-color
+.sub-dark-color
+    color: $sub-dark-color
+.small-font-size
+    font-size: .8em !important
+.pre
+    white-space: pre-wrap
+    word-wrap: break-word
+h1
+    font-weight: 800
+    line-height: 1.4em
+
+
+// Grids
+.wrapper
+    font-size: 1em
+    background: $sub-bg-color
+    +container($total-columns, $tablet, $computer)
+    +pad(0,0)
+    position: relative
+    z-index: 1
+    +single-transition(transform, 250ms, ease-in-out, 1ms)
+    +at-breakpoint($tablet)
+        font-size: 1.1em
+    +at-breakpoint($computer)
+        font-size: 1.2em
+
+
+// Icons
+i
+    background: $icons
+    display: inline-block
+    @media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi)
+        background: $icons-hd
+        +background-size(image-width(sprite-path($icons)) auto)
+
+@each $icon in sprite_names($icons)
+    .icn-#{$icon}
+        +sprite-dimensions($icons, $icon)
+        background-position: sprite-position($icons, $icon)
+        @media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi)
+            $offset: nth(sprite-position($icons-hd, $icon), 2) / 2
+            background-position: 0 $offset
+
+
+// Docs
+.main-logo
+    text-indent: -99999em
+    background: url('../images/hercules-big-logo.png') no-repeat center top
+    background-size: 280px 127px
+    display: block
+    width: 280px
+    height: 127px
+    margin: 1.5em auto 1.8em
+    +at-breakpoint($tablet)
+        background-size: 400px 182px
+        width: 400px
+        height: 182px
+.breadcrumb
+    @extend .small-font-size
+    font-weight: 100
+    &:after
+        content: ' / '
+    &:last-child:after
+        content: ''
+.docs-holder
+    margin: 1em inherit
+    padding: 0 $universal-padding
+.docs-nav-holder
+    background: $main-bg-color
+    border: solid 1px $border-color
+    +span-columns(5 omega)
+    +border-radius
+    +box-shadow(rgba(black,.6) 0 1px 2px -1px)
+    margin-bottom: 1em
+    +at-breakpoint($computer)
+        display: block
+        +span-columns(3,12)
+        margin-bottom: 0
+.doc-content-holder
+    background: $main-bg-color
+    +span-columns(5)
+    padding: $universal-padding 
+    border: solid 1px $border-color
+    +box-shadow(rgba(black,.6) 0 1px 2px -1px)
+    +border-radius
+    +at-breakpoint($computer)
+        +span-columns(9 omega,12)
+    header
+        position: relative
+    h1
+        font-size: 1.4em
+        margin-top: .4em
+        margin-bottom: -.5em
+        padding-bottom: .3em
+        +at-breakpoint($computer)
+            padding-right: 6em
+            border-bottom: solid 1px $border-color
+    h2
+        font-weight: 800
+        line-height: 1.4em
+        margin-top: 2em
+        &:first-child
+            margin-top: 0
+    h3
+        font-weight: 800
+        font-size: .9em
+        line-height: 1.4em
+        margin-top: 2em
+    time
+        font-size: .7em 
+        color: $sub-dark-color
+        display: block
+        margin-top: 1em
+        padding-bottom: .8em
+        border-bottom: solid 1px $border-color
+        +at-breakpoint($computer)
+            border-bottom-color: transparent
+            position: absolute
+            top: .4em
+            right: 0
+    p, ul
+        @extend .small-font-size
+        line-height: 1.3em
+        margin-top: 1em
+    ul
+        margin-bottom: 1.3em
+        @extend .dashed-list
+        li:first-child
+            margin-top: -.4em
+    ol
+        margin-bottom: 1.3em
+        @extend .numbered-list
+        li:first-child
+            margin-top: -.4em
+    .before-list
+        margin-bottom: -.4em
+    pre
+        @extend .small-font-size
+        word-wrap: break-word
+        margin-top: 1em
+        margin-bottom: .5em
+        > code
+            white-space: pre-wrap
+            display: block
+            width: 100%
+            padding: $universal-padding/2 $universal-padding 
+    code
+        @extend .monospace-font
+        @extend .small-font-size
+        color: #b6cac0
+        line-height: 1.2em
+        background: rgba(white,.05)
+        display: inline-block
+        padding: .1em .3em 
+        border: solid 1px $border-color
+        +border-radius(.3em)
+.docs-nav-list
+    @extend .small-font-size
+    padding: $universal-padding/2 $universal-padding $universal-padding
+    a
+        display: block
+    .main-category
+        font-weight: bold
+        margin-top: 1em
+        margin-bottom: .8em
+        padding-top: .8em
+        border-top: solid 1px $border-color
+        &:first-child
+            margin-top: 0
+            border-top: none
+.unordered-list
+    li
+        margin-top: .5em
+.numbered-list
+    counter-reset: list-counter
+    > ul
+        padding-left: 2em
+    li
+        padding-left: 2em
+        margin-top: .5em
+        position: relative
+        &:before
+            content: counter(list-counter)
+            counter-increment: list-counter
+            font-size: .9em
+            color: $sub-dark-color
+            text-align: right
+            display: inline-block
+            min-width: 1.5em
+            position: absolute
+            top: .1em
+            left: 0
+.dashed-list
+    > ul
+        padding-left: 2em
+    li
+        padding-left: 2em
+        margin-top: .5em
+        position: relative
+        &:before
+            content: '– '
+            font-size: .9em
+            color: $sub-dark-color
+            text-align: right
+            display: inline-block
+            min-width: 1.5em
+            position: absolute
+            top: .1em
+            left: 0
+
+
+// Buttons
+.small-btn
+    text-align: center
+    display: inline-block
+    padding: .4em $universal-padding
+    border: solid 2px transparent
+    +border-radius(5px)
+    cursor: pointer
+    +user-select(none)
+    .widget-controls-holder &
+        float: right
+        margin: -.35em 0 0 $universal-padding/2
+.blue-btn
+    color: $main-light-color
+    background: $blue-btn-color
+    cursor: pointer
+    &:hover
+        background: adjust-lightness($blue-btn-color, 5%)
+    &:active
+        background: adjust-lightness($blue-btn-color, -10%)
+.red-btn
+    color: $main-light-color
+    background: $red-link-color
+    cursor: pointer
+    &:hover
+        background: adjust-lightness($red-link-color , 5%)
+    &:active
+        background: adjust-lightness($red-link-color , -10%)
+.green-btn
+    color: $main-light-color
+    background: $green-btn-color
+    cursor: pointer
+    &:hover
+        background: adjust-lightness($green-btn-color , 5%)
+    &:active
+        background: adjust-lightness($green-btn-color , -10%)
+.transparent-btn
+    color: $blue-btn-color
+    background: none
+    &:hover
+        background: none
+        border-color: adjust-lightness($blue-btn-color, 5%)
+    &:active
+        background: none
+        border-color: adjust-lightness($blue-btn-color, -10%)
+.btn-container
+    @extend .small-font-size
+    text-align: center
+    margin-top: $universal-padding
+    padding-top: $universal-padding
+    border-top: solid 1px $border-color
+    .small-btn
+        margin-right: $universal-padding/2
+        margin-left: $universal-padding/2
+
+
+// Fix
+%group, .group
+    &:after
+        content: ''
+        display: table
+        clear: both
+.no-flick
+    +translate3d(0,0,0)
+.left
+    float: left
+.right
+    float: right
+.centered
+    margin: 0 auto
+    position: relative
+.centered-text
+    text-align: center
+.disabled
+    color: $sub-dark-color
+    background: $border-color
+    cursor: default
+    &:hover
+        color: $sub-dark-color
+        background: $border-color
+.inline-wrap
+    display: inline-block
+.hide
+    display: none !important
+.hide-on-phone
+    display: none
+    +at-breakpoint($tablet)
+        display: inline-block
