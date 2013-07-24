@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="viewport" content="target-densitydpi=device-dpi, initial-scale=1.0, user-scalable=no">
-    <title>Hercules</title>
+    <title>Hercules – Flexible Apache Cassandra ORM for Java</title>
     <link href="stylesheets/hercules.css" media="screen, projection" rel="stylesheet" type="text/css" />
     <!--[if IE]>
         <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -14,21 +14,83 @@
 <body>
     <section class="wrapper">
         <header class="main-header">
-            <a href="#" class="main-logo">Hercules</a>    
+            <a href="http://appmetr.github.io/hercules" class="main-logo">Hercules – Flexible Apache Cassandra ORM for Java</a>    
         </header>
 
         <div class="docs-holder group">
             <aside class="docs-nav-holder">
                 <ul class="docs-nav-list unordered-list">
-                    <li class="main-category">Contents Item</li>
+                    <li class="main-category"><a href="#introduction">Introduction</a></li>
                     <ul class="dashed-list">
-                        <li><a href="#">Contentes Sub Item</a></li>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#get-it">Get It!</a></li>
+                        <li><a href="#quick-start">Quick Start</a></li>
                     </ul>
                 </ul>
             </aside>
             <div class="doc-content-holder">
 
-				content goes here
+<h1>Hercules – Flexible Apache Cassandra ORM for Java</h1>
+
+<h2>Introduction <a id="introduction"></a></h2>
+
+<p>Hercules is a lightweight yet powerful ORM with an approach to provide OOP way of
+interacting with Cassandra-specific data model.</p>
+
+<h3>Features <a id="features"></a></h3>
+
+<ul>
+<li>plain entities (entity per row) and wide entities (entity by column in a row)</li>
+<li>flexible entity serialisation customisation</li>
+<li>managed entity indexes</li>
+<li>works great with DI frameworks</li>
+<li>lifecycle method/event support</li>
+<li>does not store null fields</li>
+</ul>
+
+<h3>Get It! <a id="get-it"></a></h3>
+
+<p>Current version is 0.1 &mdash; initial public release. Has been used only in several
+internal projects. <em>Use it in production at your own risk.</em></p>
+
+<p>Maven repo (currently hosted on github – add this to <code>&lt;repositories&gt;</code> in your <code>pom.xml</code>):</p>
+
+<pre><code>&lt;repository&gt;
+    &lt;id&gt;hercules&lt;/id&gt;
+    &lt;url&gt;https://raw.github.com/appmetr/hercules/mvn-repo/&lt;/url&gt;
+&lt;/repository&gt;
+</code></pre>
+
+<p>Maven dependency (add this to <code>&lt;dependencies&gt;</code> in your <code>pom.xml</code>):</p>
+
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;com.appmetr&lt;/groupId&gt;
+    &lt;artifactId&gt;hercules&lt;/artifactId&gt;
+    &lt;version&gt;0.1&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+
+<p>Latest binaries: <a href="https://raw.github.com/appmetr/hercules/mvn-repo/com/appmetr/hercules/0.1/hercules-0.1.jar">hercules-0.1.jar</a></p>
+
+<p>Latest source code: <a href="https://raw.github.com/appmetr/hercules/mvn-repo/com/appmetr/hercules/0.1/hercules-0.1-sources.jar">hercules-0.1-sources.jar</a></p>
+
+<p>Fork on GitHub: <a href="https://github.com/appmetr/hercules">https://github.com/appmetr/hercules</a></p>
+
+<h3>Quick Start <a id="quick-start"></a></h3>
+
+<p>Coming soon...</p>
+
+<h2>Reference</h2>
+
+<p>Coming soon...</p>
+
+<h2>Team</h2>
+
+<p>Coming soon...</p>
+
+<h2>Roadmap</h2>
+
+<p>Coming soon...</p>
 
             </div>
         </div>
