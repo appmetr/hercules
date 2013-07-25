@@ -23,9 +23,9 @@
     </repositories>
 
     <scm>
-        <connection>scm:git:git://github.com/appmetr/hercules.git</connection>
-        <url>scm:git:git://github.com/appmetr/hercules.git</url>
-        <developerConnection>scm:git:git://github.com/appmetr/hercules.git</developerConnection>
+        <connection>scm:git:ssh://github.com/appmetr/hercules.git</connection>
+        <url>scm:git:ssh://github.com/appmetr/hercules.git</url>
+        <developerConnection>scm:git:ssh://github.com/appmetr/hercules.git</developerConnection>
     </scm>
 
     <dependencies>
