@@ -22,12 +22,12 @@ $sub-bg-color         : #1B1F1E
 $dropdown-bg          : #33485c
 
 $main-light-color     : #feffff
-$main-dark-color      : #b5b095
+$main-dark-color      : #faedb7
 $sub-dark-color       : #7d8c8d
 $red-link-color       : #c53730
 
-$main-link-color      : #1a7b76
-$hover-link-color     : #28aba1
+$main-link-color      : #28aba1
+$hover-link-color     : #2dc1b6
 $blue-btn-color       : #269bd6
 $green-btn-color      : #16a085
 
@@ -35,8 +35,8 @@ $border-color         : rgba(white,.05)
 $light-border-color   : rgba(white,.1)
 $input-border-color   : #dee1e4
 
-$icons                : sprite-map("icons/*.png", $layout: smart)
-$icons-hd             : sprite-map("icons-hd/*.png")
+// $icons                : sprite-map("icons/*.png", $layout: smart)
+// $icons-hd             : sprite-map("icons-hd/*.png")
 $default-border-radius: 7px
 
 
@@ -95,20 +95,20 @@ h1
 
 
 // Icons
-i
-    background: $icons
-    display: inline-block
-    @media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi)
-        background: $icons-hd
-        +background-size(image-width(sprite-path($icons)) auto)
+// i
+//     background: $icons
+//     display: inline-block
+//     @media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi)
+//         background: $icons-hd
+//         +background-size(image-width(sprite-path($icons)) auto)
 
-@each $icon in sprite_names($icons)
-    .icn-#{$icon}
-        +sprite-dimensions($icons, $icon)
-        background-position: sprite-position($icons, $icon)
-        @media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi)
-            $offset: nth(sprite-position($icons-hd, $icon), 2) / 2
-            background-position: 0 $offset
+// @each $icon in sprite_names($icons)
+//     .icn-#{$icon}
+//         +sprite-dimensions($icons, $icon)
+//         background-position: sprite-position($icons, $icon)
+//         @media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi)
+//             $offset: nth(sprite-position($icons-hd, $icon), 2) / 2
+//             background-position: 0 $offset
 
 
 // Docs
@@ -157,7 +157,7 @@ i
     header
         position: relative
     h1
-        font-size: 1.4em
+        font-size: 1.6em
         margin-top: .4em
         margin-bottom: -.5em
         padding-bottom: .3em
@@ -165,14 +165,21 @@ i
             padding-right: 6em
             border-bottom: solid 1px $border-color
     h2
+        font-size: 1.4em
         font-weight: 800
         line-height: 1.4em
         margin-top: 2em
         &:first-child
             margin-top: 0
     h3
+        font-size: 1.1em
         font-weight: 800
-        font-size: .9em
+        line-height: 1.4em
+        margin-top: 1.7em
+    h4
+        font-size: .85em
+        font-weight: 800
+        font-style: italic
         line-height: 1.4em
         margin-top: 2em
     time
@@ -191,6 +198,8 @@ i
         @extend .small-font-size
         line-height: 1.3em
         margin-top: 1em
+    b, em
+        font-weight: bold
     ul
         margin-bottom: 1.3em
         @extend .dashed-list
@@ -217,7 +226,7 @@ i
         @extend .monospace-font
         @extend .small-font-size
         color: #b6cac0
-        line-height: 1.2em
+        line-height: 1.3em
         background: rgba(white,.05)
         display: inline-block
         padding: .1em .3em 
