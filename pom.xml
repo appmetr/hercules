@@ -7,7 +7,7 @@
     <groupId>com.appmetr</groupId>
     <artifactId>hercules</artifactId>
     <packaging>jar</packaging>
-    <version>0.1</version>
+    <version>0.1-SNAPSHOT</version>
     <name>Hercules</name>
 
     <properties>
@@ -21,6 +21,12 @@
             <url>https://raw.github.com/appmetr/monblank-java/mvn-repo/</url>
         </repository>
     </repositories>
+
+    <scm>
+        <connection>scm:git:git://github.com/appmetr/hercules.git</connection>
+        <url>scm:git:git://github.com/appmetr/hercules.git</url>
+        <developerConnection>scm:git:git://github.com/appmetr/hercules.git</developerConnection>
+    </scm>
 
     <dependencies>
 
@@ -166,6 +172,10 @@
                         <phase>deploy</phase>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
