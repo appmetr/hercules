@@ -3,9 +3,6 @@ package com.appmetr.hercules.manager;
 import com.appmetr.hercules.Hercules;
 import com.appmetr.hercules.HerculesMonitoringGroup;
 import com.appmetr.hercules.annotations.TopKey;
-import com.appmetr.hercules.batch.BatchExecutor;
-import com.appmetr.hercules.batch.BatchExtractor;
-import com.appmetr.hercules.batch.BatchProcessor;
 import com.appmetr.hercules.driver.DataDriver;
 import com.appmetr.hercules.driver.HerculesQueryResult;
 import com.appmetr.hercules.driver.serializer.RowSerializer;
@@ -271,33 +268,6 @@ public class WideEntityManager {
         }
     }
 
-    public <E, R> int processAll(Class<E> clazz, R rowKey, BatchProcessor<E> processor) {
-        return processAll(clazz, rowKey, BatchExecutor.DEFAULT_BATCH_SIZE, processor);
-    }
-
-    public <E, R> int processAll(Class<E> clazz, R rowKey, int batchSize, BatchProcessor<E> processor) {
-        return processRange(clazz, rowKey, null, null, batchSize, processor);
-    }
-
-    public <E, R, T> int processRange(final Class<E> clazz, final R rowKey, T from, T to, int batchSize, BatchProcessor<E> processor) {
-        final WideEntityMetadata metadata = getMetadata(clazz);
-        final Field topKeyField = metadata.getTopKeyMetadata().getField();
-
-        if (topKeyField == null) {
-            throw new RuntimeException("Doesn't declare " + TopKey.class.getSimpleName() + " field for entity in range query");
-        }
-
-        return new BatchExecutor<E, T>(new BatchExtractor<E, T>() {
-            @Override public List<E> getBatch(T from, T to, int batchSize) {
-                return get(clazz, rowKey, from, to, false, batchSize);
-            }
-
-            @Override public T getKey(E item) {
-                return getTopKey(item, metadata);
-            }
-        }, processor, from, to, batchSize).execute();
-    }
-
     public <E, R, T> List<R> getKeyRange(Class<E> clazz, R from, R to, int batchSize) {
         WideEntityMetadata metadata = getMetadata(clazz);
 
@@ -488,7 +458,7 @@ public class WideEntityManager {
         final Field topKeyField = metadata.getTopKeyMetadata().getField();
 
         if (topKeyField == null) {
-            throw new RuntimeException(TopKey.class.getSimpleName() + " field isn't declared for entity " + entity.getClass() + " in range query");
+            throw new RuntimeException(TopKey.class.getSimpleName() + " field isn't declared for entity " + entity.getClass() + " but it needs in the operation");
         }
 
         try {

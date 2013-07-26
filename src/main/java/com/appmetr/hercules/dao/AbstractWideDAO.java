@@ -1,7 +1,9 @@
 package com.appmetr.hercules.dao;
 
 import com.appmetr.hercules.Hercules;
+import com.appmetr.hercules.batch.BatchExecutor;
 import com.appmetr.hercules.batch.BatchProcessor;
+import com.appmetr.hercules.batch.extractor.WideDAOBatchIterator;
 import com.appmetr.hercules.operations.DeleteExecutableOperation;
 import com.appmetr.hercules.operations.GetExecutableOperation;
 import com.appmetr.hercules.operations.OperationsCollector;
@@ -89,15 +91,15 @@ public abstract class AbstractWideDAO<E, R, T> {
     }
 
     public int processAll(R rowKey, BatchProcessor<E> processor) {
-        return getHercules().getWideEntityManager().processAll(entityClass, rowKey, processor);
+        return processRange(rowKey, null, null, Hercules.DEFAULT_BATCH_SIZE, processor);
     }
 
     public int processAll(R rowKey, int batchSize, BatchProcessor<E> processor) {
-        return getHercules().getWideEntityManager().processAll(entityClass, rowKey, batchSize, processor);
+        return processRange(rowKey, null, null, batchSize, processor);
     }
 
-    public int processRange(final R rowKey, T from, T to, int batchSize, BatchProcessor<E> processor) {
-        return getHercules().getWideEntityManager().processRange(entityClass, rowKey, from, to, batchSize, processor);
+    public int processRange(R rowKey, T from, T to, int batchSize, BatchProcessor<E> processor) {
+        return new BatchExecutor<E, T>(new WideDAOBatchIterator<E, R, T>(this, rowKey, from, to, batchSize), processor).execute();
     }
 
     public List<R> getKeyRange(R from, R to, int batchSize) {

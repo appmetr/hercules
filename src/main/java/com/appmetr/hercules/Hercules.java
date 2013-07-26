@@ -50,6 +50,8 @@ public class Hercules {
 
     protected Logger logger = LoggerFactory.getLogger(Hercules.class);
 
+    public static final int DEFAULT_BATCH_SIZE = 1000;
+
     @Inject HerculesConfig config;
 
     private Map<Class, EntityMetadata> entityClassMetadataCache = new HashMap<Class, EntityMetadata>();

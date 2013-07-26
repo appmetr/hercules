@@ -3,10 +3,6 @@ package com.appmetr.hercules.manager;
 import com.appmetr.hercules.Hercules;
 import com.appmetr.hercules.HerculesMonitoringGroup;
 import com.appmetr.hercules.annotations.Id;
-import com.appmetr.hercules.batch.BatchExecutor;
-import com.appmetr.hercules.batch.BatchExtractor;
-import com.appmetr.hercules.batch.BatchProcessor;
-import com.appmetr.hercules.batch.extractor.ImmutableKeyBatchExtractor;
 import com.appmetr.hercules.driver.DataDriver;
 import com.appmetr.hercules.driver.HerculesMultiQueryResult;
 import com.appmetr.hercules.driver.HerculesQueryResult;
@@ -22,6 +18,7 @@ import com.appmetr.hercules.wide.SliceDataSpecificator;
 import com.appmetr.monblank.Monitoring;
 import com.appmetr.monblank.StopWatch;
 import com.google.inject.Inject;
+import com.sun.tools.javac.util.Pair;
 import me.prettyprint.cassandra.serializers.BytesArraySerializer;
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.hector.api.Serializer;
@@ -120,7 +117,7 @@ public class EntityManager {
         }
     }
 
-    public <E, K> List<E> getRange(Class<E> clazz, K from, K to, Integer count) {
+    public <E, K> Pair<List<E>, K> getRange(Class<E> clazz, K from, K to, Integer count) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get range " + clazz.getSimpleName());
 
         try {
@@ -130,9 +127,9 @@ public class EntityManager {
                     this.<K>getRowSerializerForEntity(metadata), from, to, count, new SliceDataSpecificator<String>(null, null, false, null));
 
             if (queryResult.hasResult()) {
-                return convertToEntityList(clazz, queryResult.getEntries());
+                return new Pair<List<E>, K>(convertToEntityList(clazz, queryResult.getEntries()), queryResult.getLastKey());
             } else {
-                return new ArrayList<E>();
+                return new Pair<List<E>, K>(new ArrayList<E>(), queryResult.getLastKey());
             }
         } catch (RuntimeException e) {
             monitoring.inc(HerculesMonitoringGroup.HERCULES_EM, "Error: getting entities range");
@@ -274,44 +271,6 @@ public class EntityManager {
     public <K> void delete(Class clazz, K primaryKey) {
         //Can't delete entity by PK directly, cause we need to delete indexes
         delete(get(clazz, primaryKey));
-    }
-
-    public <E> int processAll(Class<E> clazz, BatchProcessor<E> processor) {
-        return processAll(clazz, BatchExecutor.DEFAULT_BATCH_SIZE, processor);
-    }
-
-    public <E> int processAll(Class<E> clazz, int batchSize, BatchProcessor<E> processor) {
-        return processRange(clazz, null, null, batchSize, processor);
-    }
-
-    public <E, K> int processRange(final Class<E> clazz, K from, K to, int batchSize, BatchProcessor<E> batchProcessor) {
-        final EntityMetadata metadata = getMetadata(clazz);
-
-        return new BatchExecutor<E, K>(new BatchExtractor<E, K>() {
-            @Override public List<E> getBatch(K from, K to, int batchSize) {
-                return getRange(clazz, from, to, batchSize);
-            }
-
-            @Override public K getKey(E item) {
-                return getPrimaryKey(item, metadata);
-            }
-        }, batchProcessor, from, to, batchSize).execute();
-    }
-
-    public <E, K> int processAllKeys(Class<E> clazz, BatchProcessor<K> processor) {
-        return processAllKeys(clazz, BatchExecutor.DEFAULT_BATCH_SIZE, processor);
-    }
-
-    public <E, K> int processAllKeys(Class<E> clazz, int batchSize, BatchProcessor<K> processor) {
-        return processKeyRange(clazz, null, null, batchSize, processor);
-    }
-
-    public <E, K> int processKeyRange(final Class<E> clazz, K from, K to, int batchSize, BatchProcessor<K> processor) {
-        return new BatchExecutor<K, K>(new ImmutableKeyBatchExtractor<K>() {
-            @Override public List<K> getBatch(K from, K to, int batchSize) {
-                return getKeyRange(clazz, from, to, batchSize);
-            }
-        }, processor, from, to, batchSize).execute();
     }
 
     //package level

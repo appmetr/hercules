@@ -24,7 +24,9 @@ public class TestWideEntity implements Externalizable {
     public TestWideEntity() {
     }
 
-    public TestWideEntity(String stringData, Integer intData) {
+    public TestWideEntity(String topKey, String stringData, Integer intData) {
+        this.topKey = topKey;
+
         this.stringData = stringData;
         this.intData = intData;
     }

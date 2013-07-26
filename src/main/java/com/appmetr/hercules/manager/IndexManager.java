@@ -1,7 +1,10 @@
 package com.appmetr.hercules.manager;
 
 import com.appmetr.hercules.Hercules;
+import com.appmetr.hercules.batch.BatchExecutor;
+import com.appmetr.hercules.batch.BatchIterator;
 import com.appmetr.hercules.batch.BatchProcessor;
+import com.appmetr.hercules.batch.extractor.PairBatchIterator;
 import com.appmetr.hercules.driver.DataDriver;
 import com.appmetr.hercules.driver.HerculesMultiQueryResult;
 import com.appmetr.hercules.driver.serializer.ByteArrayRowSerializer;
@@ -9,6 +12,7 @@ import com.appmetr.hercules.metadata.EntityMetadata;
 import com.appmetr.hercules.metadata.ForeignKeyMetadata;
 import com.appmetr.hercules.wide.SliceDataSpecificator;
 import com.google.inject.Inject;
+import com.sun.tools.javac.util.Pair;
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.hector.api.Serializer;
 import me.prettyprint.hector.api.ddl.ComparatorType;
@@ -117,15 +121,17 @@ public class IndexManager {
             logger.info("Trying to create PK index row for CF: " + cfName);
 
             final Map<Object, Object> valuesToInsert = new HashMap<Object, Object>();
-            entityManager.processAll(metadata.getEntityClass(), new BatchProcessor() {
-                @Override public void processBatch(List batch) {
-
-                    for (Object entity : batch) {
-                        final Object primaryKey = entityManager.getPrimaryKey(entity, metadata);
-                        valuesToInsert.put(primaryKey, new byte[0]);
+            new BatchExecutor<Object, Object>(
+                    getEntityClassBatchIterator(metadata.getEntityClass()),
+                    new BatchProcessor<Object>() {
+                        @Override public void processBatch(List batch) {
+                            for (Object entity : batch) {
+                                final Object primaryKey = entityManager.getPrimaryKey(entity, metadata);
+                                valuesToInsert.put(primaryKey, new byte[0]);
+                            }
+                        }
                     }
-                }
-            });
+            ).execute();
 
             dataDriver.insert(hercules.getKeyspace(), EntityManager.PRIMARY_KEY_CF_NAME,
                     new ByteArrayRowSerializer<String, Object>(StringSerializer.get(), entityManager.getPrimaryKeySerializer(metadata)),
@@ -152,25 +158,28 @@ public class IndexManager {
         final Serializer primaryKeySerializer = entityManager.getPrimaryKeySerializer(metadata);
         final Serializer foreignKeySerializer = entityManager.getForeignKeySerializer(keyMetadata);
 
-        entityManager.processAll(metadata.getEntityClass(), new BatchProcessor() {
-            @Override public void processBatch(List batch) {
-                for (Object entity : batch) {
+        new BatchExecutor<Object, Object>(
+                getEntityClassBatchIterator(metadata.getEntityClass()),
+                new BatchProcessor<Object>() {
+                    @Override public void processBatch(List batch) {
+                        for (Object entity : batch) {
 
-                    Object primaryKey = entityManager.getPrimaryKey(entity, metadata);
-                    Object foreignKey = entityManager.getForeignKeyFromEntity(entity, metadata, keyMetadata.getKeyClass());
+                            Object primaryKey = entityManager.getPrimaryKey(entity, metadata);
+                            Object foreignKey = entityManager.getForeignKeyFromEntity(entity, metadata, keyMetadata.getKeyClass());
 
-                    if (foreignKey == null) {
-                        rowsSkipped[0]++;
-                        continue;
+                            if (foreignKey == null) {
+                                rowsSkipped[0]++;
+                                continue;
+                            }
+
+                            logger.debug("Inserting index [" + foreignKey + "][" + primaryKey + "].");
+                            insertRowIndex(keyMetadata.getColumnFamily(), foreignKey, foreignKeySerializer, primaryKey, primaryKeySerializer);
+
+                            rowsInserted[0]++;
+                        }
                     }
-
-                    logger.debug("Inserting index [" + foreignKey + "][" + primaryKey + "].");
-                    insertRowIndex(keyMetadata.getColumnFamily(), foreignKey, foreignKeySerializer, primaryKey, primaryKeySerializer);
-
-                    rowsInserted[0]++;
                 }
-            }
-        });
+        ).execute();
 
         logger.info("Inserted " + rowsInserted[0] + " rows into index table: " + keyMetadata.getColumnFamily() + ". Rows skipped: " + rowsSkipped[0]);
         return rowsInserted[0];
@@ -186,5 +195,17 @@ public class IndexManager {
         dataDriver.delete(hercules.getKeyspace(), columnFamily,
                 new ByteArrayRowSerializer<K, T>(indexRowKeySerializer, columnSerializer),
                 indexRowKey, columns);
+    }
+
+    private BatchIterator<Object, Object> getEntityClassBatchIterator(final Class clazz) {
+        return new PairBatchIterator<Object, Object>(null, null) {
+            @Override protected Pair getRangePair(Object from, Object to, int batchSize) {
+                return entityManager.getRange(clazz, from, to, batchSize);
+            }
+
+            @Override protected Object getKey(Object item) {
+                return entityManager.getPK(item);
+            }
+        };
     }
 }

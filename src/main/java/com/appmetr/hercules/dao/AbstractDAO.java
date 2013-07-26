@@ -1,8 +1,12 @@
 package com.appmetr.hercules.dao;
 
 import com.appmetr.hercules.Hercules;
+import com.appmetr.hercules.batch.BatchExecutor;
 import com.appmetr.hercules.batch.BatchProcessor;
+import com.appmetr.hercules.batch.extractor.DAOBatchIterator;
+import com.appmetr.hercules.batch.extractor.ImmutableKeyBatchIterator;
 import com.appmetr.hercules.keys.ForeignKey;
+import com.sun.tools.javac.util.Pair;
 
 import java.util.List;
 
@@ -33,6 +37,10 @@ public abstract class AbstractDAO<E, K> {
     }
 
     public List<E> getRange(K from, K to, Integer count) {
+        return getHercules().getEntityManager().getRange(entityClass, from, to, count).fst;
+    }
+
+    public Pair<List<E>, K> getRangeWithLastKey(K from, K to, Integer count) {
         return getHercules().getEntityManager().getRange(entityClass, from, to, count);
     }
 
@@ -81,26 +89,30 @@ public abstract class AbstractDAO<E, K> {
     }
 
     public int processAll(BatchProcessor<E> processor) {
-        return getHercules().getEntityManager().processAll(entityClass, processor);
+        return processRange(null, null, Hercules.DEFAULT_BATCH_SIZE, processor);
     }
 
     public int processAll(Integer batchSize, BatchProcessor<E> processor) {
-        return getHercules().getEntityManager().processAll(entityClass, batchSize, processor);
+        return processRange(null, null, batchSize, processor);
     }
 
     public int processRange(K from, K to, Integer batchSize, BatchProcessor<E> processor) {
-        return getHercules().getEntityManager().processRange(entityClass, from, to, batchSize, processor);
+        return new BatchExecutor<E, K>(new DAOBatchIterator<E, K>(this, from, to, batchSize), processor).execute();
     }
 
     public int processAllKeys(BatchProcessor<K> processor) {
-        return getHercules().getEntityManager().processAllKeys(entityClass, processor);
+        return processKeyRange(null, null, Hercules.DEFAULT_BATCH_SIZE, processor);
     }
 
     public int processAllKeys(Integer batchSize, BatchProcessor<K> processor) {
-        return getHercules().getEntityManager().processAllKeys(entityClass, batchSize, processor);
+        return processKeyRange(null, null, batchSize, processor);
     }
 
     public int processKeyRange(K from, K to, Integer batchSize, BatchProcessor<K> processor) {
-        return getHercules().getEntityManager().processKeyRange(entityClass, from, to, batchSize, processor);
+        return new BatchExecutor<K, K>(new ImmutableKeyBatchIterator<K>(from, to, batchSize) {
+            @Override public List<K> getRange(K from, K to, int batchSize) {
+                return getHercules().getEntityManager().getKeyRange(entityClass, from, to, batchSize);
+            }
+        }, processor).execute();
     }
 }

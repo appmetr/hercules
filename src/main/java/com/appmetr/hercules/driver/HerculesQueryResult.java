@@ -1,10 +1,10 @@
 package com.appmetr.hercules.driver;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class HerculesQueryResult<T> {
-    private Map<T, Object> entries = new HashMap<T, Object>();
+    private Map<T, Object> entries = new LinkedHashMap<T, Object>();
     boolean hasResult = false;
 
     public HerculesQueryResult() {

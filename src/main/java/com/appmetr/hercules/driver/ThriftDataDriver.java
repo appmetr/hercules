@@ -389,7 +389,9 @@ public class ThriftDataDriver implements DataDriver {
 
         Map<R, Map<T, Object>> result = new LinkedHashMap<R, Map<T, Object>>();
 
+        R lastKey = null;
         for (Row<R, T, ByteBuffer> row : rows) {
+            lastKey = row.getKey();
 
             List<HColumn<T, ByteBuffer>> columns = row.getColumnSlice().getColumns();
 
@@ -407,7 +409,7 @@ public class ThriftDataDriver implements DataDriver {
             }
         }
 
-        return result.size() > 0 ? new HerculesMultiQueryResult<R, T>(result) : new HerculesMultiQueryResult<R, T>();
+        return result.size() > 0 ? new HerculesMultiQueryResult<R, T>(result, lastKey) : new HerculesMultiQueryResult<R, T>(lastKey);
     }
 
     private int getBoundedRowCount(Integer rowCount) {
