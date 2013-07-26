@@ -30,6 +30,11 @@
             </aside>
             <div class="doc-content-holder">
 
+
+
+
+
+
 <h1>Hercules – Flexible Apache Cassandra ORM for Java</h1>
 
 <h2>Introduction <a id="introduction"></a></h2>
@@ -78,7 +83,55 @@ internal projects. <em>Use it in production at your own risk.</em></p>
 
 <h3>Quick Start <a id="quick-start"></a></h3>
 
-<p>Coming soon...</p>
+<p>Hercules requires Java SE 5 or higher.</p>
+
+<p>Create you first entity:</p>
+
+<pre><code>@Entity
+public class Cat {
+
+    @Id String id;
+
+    String name;
+
+}
+</code></pre>
+
+<p>Create entity DAO:</p>
+
+<pre><code>public class CatDAO extends AbstractDAO&lt;Cat, String&gt; {
+
+    public CatDAO(Hercules hercules) {
+        super(Cat.class, hercules);
+    }
+
+}
+</code></pre>
+
+<p>Create Hercules config:</p>
+
+<pre><code>Set&lt;Class&gt; entityClasses = new HashSet&lt;Class&gt;();
+entityClasses.add(Cat.class);
+
+HerculesConfig config = new HerculesConfig(
+    "Test",             // keyspace name
+    "localhost:9160",   // cassandra host and port
+    1,                  // replication factor
+    true,               // is schema modification enabled
+    entityClasses
+);
+</code></pre>
+
+<p>Create Hercules and perform queries:</p>
+
+<pre><code>Hercules hercules = HerculesFactory.create(config);
+hercules.init();
+
+CatDAO catDAO = new CatDAO(hercules);
+Cat cat = catDAO.get("cat01");
+
+hercules.shutdown();
+</code></pre>
 
 <h2>Reference</h2>
 
@@ -91,6 +144,12 @@ internal projects. <em>Use it in production at your own risk.</em></p>
 <h2>Roadmap</h2>
 
 <p>Coming soon...</p>
+
+
+
+
+
+
 
             </div>
         </div>

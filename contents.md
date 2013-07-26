@@ -51,7 +51,55 @@ Fork on GitHub: [https://github.com/appmetr/hercules](https://github.com/appmetr
 
 ### Quick Start <a id="quick-start"></a>
 
-Coming soon...
+Hercules requires Java SE 5 or higher.
+
+Create you first entity:
+
+	@Entity
+	public class Cat {
+		
+		@Id String id;
+		
+		String name;
+		
+	}
+
+	
+Create entity DAO:
+
+	public class CatDAO extends AbstractDAO<Cat, String> {
+
+	    public CatDAO(Hercules hercules) {
+	        super(Cat.class, hercules);
+	    }
+
+	}
+	
+
+Create Hercules config:
+
+	Set<Class> entityClasses = new HashSet<Class>();
+	entityClasses.add(Cat.class);
+
+	HerculesConfig config = new HerculesConfig(
+	    "Test", 			// keyspace name
+	    "localhost:9160",	// cassandra host and port
+	    1,					// replication factor
+	    true,				// is schema modification enabled
+	    entityClasses
+	);
+
+
+Create Hercules and perform queries:
+
+	Hercules hercules = HerculesFactory.create(config);
+	hercules.init();
+	
+	CatDAO catDAO = new CatDAO(hercules);
+	Cat cat = catDAO.get("cat01");
+	
+	hercules.shutdown();
+	
 
 
 ## Reference
