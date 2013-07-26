@@ -9,24 +9,25 @@ import java.util.Set;
 
 public class TestMain {
     public static void main(String[] args) throws InterruptedException {
-        Set<Class> entityClasses = new HashSet<Class>();
-        entityClasses.add(TestEntity.class);
-        entityClasses.add(ParentEntity.class);
-        entityClasses.add(TestRangeEntity.class);
+        Set<Class> classes = new HashSet<Class>();
 
-        Set<Class> wideEntityClasses = new HashSet<Class>();
-        wideEntityClasses.add(TestNonorganicWideEntityA.class);
-        wideEntityClasses.add(TestNonorganicWideEntityB.class);
-        wideEntityClasses.add(TestPartitionedEntity.class);
-        wideEntityClasses.add(TestWideEntity.class);
+        //Entity
+        classes.add(TestEntity.class);
+        classes.add(ParentEntity.class);
+        classes.add(TestRangeEntity.class);
+
+        //WideEntity
+        classes.add(TestNonorganicWideEntityA.class);
+        classes.add(TestNonorganicWideEntityB.class);
+        classes.add(TestPartitionedEntity.class);
+        classes.add(TestWideEntity.class);
 
         HerculesConfig config = new HerculesConfig(
                 "Test",
                 "localhost:9160",
                 1,
                 true,
-                entityClasses,
-                wideEntityClasses
+                classes
         );
 
         Hercules hercules = HerculesFactory.create(config);
