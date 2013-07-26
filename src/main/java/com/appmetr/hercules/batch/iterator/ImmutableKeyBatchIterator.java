@@ -1,4 +1,4 @@
-package com.appmetr.hercules.batch.extractor;
+package com.appmetr.hercules.batch.iterator;
 
 public abstract class ImmutableKeyBatchIterator<E> extends RangeBatchIterator<E, E> {
     public ImmutableKeyBatchIterator(E from, E to, int batchSize) {

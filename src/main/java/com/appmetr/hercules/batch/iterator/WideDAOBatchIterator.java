@@ -1,4 +1,4 @@
-package com.appmetr.hercules.batch.extractor;
+package com.appmetr.hercules.batch.iterator;
 
 import com.appmetr.hercules.dao.AbstractWideDAO;
 

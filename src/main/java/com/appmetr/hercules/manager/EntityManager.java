@@ -14,11 +14,11 @@ import com.appmetr.hercules.metadata.EntityMetadata;
 import com.appmetr.hercules.metadata.ForeignKeyMetadata;
 import com.appmetr.hercules.serializers.AbstractHerculesSerializer;
 import com.appmetr.hercules.serializers.SerializerProvider;
+import com.appmetr.hercules.utils.Tuple2;
 import com.appmetr.hercules.wide.SliceDataSpecificator;
 import com.appmetr.monblank.Monitoring;
 import com.appmetr.monblank.StopWatch;
 import com.google.inject.Inject;
-import com.sun.tools.javac.util.Pair;
 import me.prettyprint.cassandra.serializers.BytesArraySerializer;
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.hector.api.Serializer;
@@ -117,7 +117,7 @@ public class EntityManager {
         }
     }
 
-    public <E, K> Pair<List<E>, K> getRange(Class<E> clazz, K from, K to, Integer count) {
+    public <E, K> Tuple2<List<E>, K> getRange(Class<E> clazz, K from, K to, Integer count) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get range " + clazz.getSimpleName());
 
         try {
@@ -127,9 +127,9 @@ public class EntityManager {
                     this.<K>getRowSerializerForEntity(metadata), from, to, count, new SliceDataSpecificator<String>(null, null, false, null));
 
             if (queryResult.hasResult()) {
-                return new Pair<List<E>, K>(convertToEntityList(clazz, queryResult.getEntries()), queryResult.getLastKey());
+                return new Tuple2<List<E>, K>(convertToEntityList(clazz, queryResult.getEntries()), queryResult.getLastKey());
             } else {
-                return new Pair<List<E>, K>(new ArrayList<E>(), queryResult.getLastKey());
+                return new Tuple2<List<E>, K>(new ArrayList<E>(), queryResult.getLastKey());
             }
         } catch (RuntimeException e) {
             monitoring.inc(HerculesMonitoringGroup.HERCULES_EM, "Error: getting entities range");

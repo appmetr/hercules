@@ -1,11 +1,11 @@
-package com.appmetr.hercules.batch.extractor;
+package com.appmetr.hercules.batch.iterator;
 
 import com.appmetr.hercules.dao.AbstractDAO;
-import com.sun.tools.javac.util.Pair;
+import com.appmetr.hercules.utils.Tuple2;
 
 import java.util.List;
 
-public class DAOBatchIterator<E, K> extends PairBatchIterator<E, K> {
+public class DAOBatchIterator<E, K> extends TupleBatchIterator<E, K> {
     private AbstractDAO<E, K> dao;
 
     public DAOBatchIterator(AbstractDAO<E, K> dao, K from, K to) {
@@ -18,7 +18,7 @@ public class DAOBatchIterator<E, K> extends PairBatchIterator<E, K> {
         this.dao = dao;
     }
 
-    @Override protected Pair<List<E>, K> getRangePair(K from, K to, int batchSize) {
+    @Override protected Tuple2<List<E>, K> getRangeTuple(K from, K to, int batchSize) {
         return dao.getRangeWithLastKey(from, to, batchSize);
     }
 

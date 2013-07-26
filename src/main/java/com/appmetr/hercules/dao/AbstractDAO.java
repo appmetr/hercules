@@ -4,10 +4,10 @@ import com.appmetr.hercules.Hercules;
 import com.appmetr.hercules.HerculesProvider;
 import com.appmetr.hercules.batch.BatchExecutor;
 import com.appmetr.hercules.batch.BatchProcessor;
-import com.appmetr.hercules.batch.extractor.DAOBatchIterator;
-import com.appmetr.hercules.batch.extractor.ImmutableKeyBatchIterator;
+import com.appmetr.hercules.batch.iterator.DAOBatchIterator;
+import com.appmetr.hercules.batch.iterator.ImmutableKeyBatchIterator;
 import com.appmetr.hercules.keys.ForeignKey;
-import com.sun.tools.javac.util.Pair;
+import com.appmetr.hercules.utils.Tuple2;
 
 import java.util.List;
 
@@ -50,10 +50,10 @@ public abstract class AbstractDAO<E, K> {
     }
 
     public List<E> getRange(K from, K to, Integer count) {
-        return getHercules().getEntityManager().getRange(entityClass, from, to, count).fst;
+        return getHercules().getEntityManager().getRange(entityClass, from, to, count).e1;
     }
 
-    public Pair<List<E>, K> getRangeWithLastKey(K from, K to, Integer count) {
+    public Tuple2<List<E>, K> getRangeWithLastKey(K from, K to, Integer count) {
         return getHercules().getEntityManager().getRange(entityClass, from, to, count);
     }
 

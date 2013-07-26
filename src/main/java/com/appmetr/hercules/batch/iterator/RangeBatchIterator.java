@@ -1,4 +1,4 @@
-package com.appmetr.hercules.batch.extractor;
+package com.appmetr.hercules.batch.iterator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,15 +8,13 @@ import java.util.List;
  *
  * IMPORTANT
  * This class not designed for specific cases (e.g. when batch may contain less then batchSize items,
- * but data store has more elements, see DAOBatchIterator as an example)
+ * but data store has more elements, see TupleBatchIterator as an example)
  *
  * @param <E> entity for iterate
  * @param <K> entity key for iterate
  */
 public abstract class RangeBatchIterator<E, K> extends AbstractBatchIterator<E, K> {
     protected K lastKey;
-
-    private boolean hasNext = false;
 
     //Override this method in child classes
     protected abstract List<E> getRange(K from, K to, int batchSize);
@@ -47,14 +45,8 @@ public abstract class RangeBatchIterator<E, K> extends AbstractBatchIterator<E, 
         } else {
             lastKey = getKey(batch.get(batch.size() - 1));
             result = batch.subList(0, batch.size() - 1);
-
-            hasNext = true;
         }
 
         return result;
-    }
-
-    @Override public boolean hasNext() {
-        return hasNext;
     }
 }

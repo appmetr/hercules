@@ -4,15 +4,15 @@ import com.appmetr.hercules.Hercules;
 import com.appmetr.hercules.batch.BatchExecutor;
 import com.appmetr.hercules.batch.BatchIterator;
 import com.appmetr.hercules.batch.BatchProcessor;
-import com.appmetr.hercules.batch.extractor.PairBatchIterator;
+import com.appmetr.hercules.batch.iterator.TupleBatchIterator;
 import com.appmetr.hercules.driver.DataDriver;
 import com.appmetr.hercules.driver.HerculesMultiQueryResult;
 import com.appmetr.hercules.driver.serializer.ByteArrayRowSerializer;
 import com.appmetr.hercules.metadata.EntityMetadata;
 import com.appmetr.hercules.metadata.ForeignKeyMetadata;
+import com.appmetr.hercules.utils.Tuple2;
 import com.appmetr.hercules.wide.SliceDataSpecificator;
 import com.google.inject.Inject;
-import com.sun.tools.javac.util.Pair;
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.hector.api.Serializer;
 import me.prettyprint.hector.api.ddl.ComparatorType;
@@ -198,8 +198,8 @@ public class IndexManager {
     }
 
     private BatchIterator<Object, Object> getEntityClassBatchIterator(final Class clazz) {
-        return new PairBatchIterator<Object, Object>(null, null) {
-            @Override protected Pair getRangePair(Object from, Object to, int batchSize) {
+        return new TupleBatchIterator<Object, Object>(null, null) {
+            @Override protected Tuple2 getRangeTuple(Object from, Object to, int batchSize) {
                 return entityManager.getRange(clazz, from, to, batchSize);
             }
 

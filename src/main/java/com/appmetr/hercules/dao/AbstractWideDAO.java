@@ -4,7 +4,7 @@ import com.appmetr.hercules.Hercules;
 import com.appmetr.hercules.HerculesProvider;
 import com.appmetr.hercules.batch.BatchExecutor;
 import com.appmetr.hercules.batch.BatchProcessor;
-import com.appmetr.hercules.batch.extractor.WideDAOBatchIterator;
+import com.appmetr.hercules.batch.iterator.WideDAOBatchIterator;
 import com.appmetr.hercules.operations.DeleteExecutableOperation;
 import com.appmetr.hercules.operations.GetExecutableOperation;
 import com.appmetr.hercules.operations.OperationsCollector;
