@@ -1,6 +1,7 @@
 package com.appmetr.hercules.dao;
 
 import com.appmetr.hercules.Hercules;
+import com.appmetr.hercules.HerculesProvider;
 import com.appmetr.hercules.batch.BatchExecutor;
 import com.appmetr.hercules.batch.BatchProcessor;
 import com.appmetr.hercules.batch.extractor.WideDAOBatchIterator;
@@ -19,12 +20,24 @@ import java.util.List;
 public abstract class AbstractWideDAO<E, R, T> {
 
     private final Class<E> entityClass;
+    private HerculesProvider provider;
 
-    public AbstractWideDAO(Class<E> entityClass) {
-        this.entityClass = entityClass;
+    public AbstractWideDAO(Class<E> entityClass, final Hercules hercules) {
+        this(entityClass, new HerculesProvider() {
+            @Override public Hercules getHercules() {
+                return hercules;
+            }
+        });
     }
 
-    public abstract Hercules getHercules();
+    public AbstractWideDAO(Class<E> entityClass, HerculesProvider provider) {
+        this.entityClass = entityClass;
+        this.provider = provider;
+    }
+
+    public Hercules getHercules() {
+        return provider.getHercules();
+    }
 
     public E get(R rowKey, T topKey) {
         return getHercules().getWideEntityManager().get(entityClass, rowKey, topKey);

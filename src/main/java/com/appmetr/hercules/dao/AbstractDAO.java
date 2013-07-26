@@ -1,6 +1,7 @@
 package com.appmetr.hercules.dao;
 
 import com.appmetr.hercules.Hercules;
+import com.appmetr.hercules.HerculesProvider;
 import com.appmetr.hercules.batch.BatchExecutor;
 import com.appmetr.hercules.batch.BatchProcessor;
 import com.appmetr.hercules.batch.extractor.DAOBatchIterator;
@@ -13,12 +14,24 @@ import java.util.List;
 public abstract class AbstractDAO<E, K> {
 
     private final Class<E> entityClass;
+    private HerculesProvider provider;
 
-    public AbstractDAO(Class<E> entityClass) {
-        this.entityClass = entityClass;
+    public AbstractDAO(Class<E> entityClass, final Hercules hercules) {
+        this(entityClass, new HerculesProvider() {
+            @Override public Hercules getHercules() {
+                return hercules;
+            }
+        });
     }
 
-    public abstract Hercules getHercules();
+    public AbstractDAO(Class<E> entityClass, HerculesProvider provider) {
+        this.entityClass = entityClass;
+        this.provider = provider;
+    }
+
+    public Hercules getHercules() {
+        return provider.getHercules();
+    }
 
     public K getPK(E entity) {
         return getHercules().getEntityManager().getPK(entity);

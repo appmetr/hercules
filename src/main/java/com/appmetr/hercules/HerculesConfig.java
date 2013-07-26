@@ -33,7 +33,7 @@ public class HerculesConfig {
             if (entityClass.isAnnotationPresent(Entity.class)) {
                 this.entityClasses.add(entityClass);
             } else if (entityClass.isAnnotationPresent(WideEntity.class)) {
-                this.entityClasses.add(entityClass);
+                this.wideEntityClasses.add(entityClass);
             } else {
                 throw new RuntimeException("Wrong class for entity " + entityClass.getSimpleName());
             }
