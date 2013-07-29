@@ -20,6 +20,14 @@ public abstract class RangeBatchIterator<E, K> extends AbstractBatchIterator<E, 
     protected abstract List<E> getRange(K from, K to, int batchSize);
     protected abstract K getKey(E item);
 
+    public RangeBatchIterator() {
+        super();
+    }
+
+    public RangeBatchIterator(int batchSize) {
+        super(batchSize);
+    }
+
     public RangeBatchIterator(K from, K to) {
         super(from, to);
 

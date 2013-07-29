@@ -8,6 +8,16 @@ import java.util.List;
 public class DAOBatchIterator<E, K> extends TupleBatchIterator<E, K> {
     private AbstractDAO<E, K> dao;
 
+    public DAOBatchIterator(AbstractDAO<E, K> dao) {
+        super();
+        this.dao = dao;
+    }
+
+    public DAOBatchIterator(AbstractDAO<E, K> dao, int batchSize) {
+        super(batchSize);
+        this.dao = dao;
+    }
+
     public DAOBatchIterator(AbstractDAO<E, K> dao, K from, K to) {
         super(from, to);
         this.dao = dao;

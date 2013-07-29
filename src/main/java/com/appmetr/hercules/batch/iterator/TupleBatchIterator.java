@@ -8,6 +8,13 @@ public abstract class TupleBatchIterator<E, K> extends AbstractBatchIterator<E, 
     private K prevKey = null;
     private K lastKey = null;
 
+    public TupleBatchIterator() {
+    }
+
+    public TupleBatchIterator(int batchSize) {
+        super(batchSize);
+    }
+
     public TupleBatchIterator(K from, K to) {
         super(from, to);
     }

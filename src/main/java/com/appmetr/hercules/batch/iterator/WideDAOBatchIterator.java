@@ -8,8 +8,23 @@ public class WideDAOBatchIterator<E, R, T> extends RangeBatchIterator<E, T> {
     private AbstractWideDAO<E, R, T> dao;
     private R rowKey;
 
+    public WideDAOBatchIterator(AbstractWideDAO<E, R, T> dao, R rowKey) {
+        super();
+
+        this.dao = dao;
+        this.rowKey = rowKey;
+    }
+
+    public WideDAOBatchIterator(AbstractWideDAO<E, R, T> dao, R rowKey, int batchSize) {
+        super(batchSize);
+
+        this.dao = dao;
+        this.rowKey = rowKey;
+    }
+
     public WideDAOBatchIterator(AbstractWideDAO<E, R, T> dao, R rowKey, T from, T to) {
         super(from, to);
+
         this.dao = dao;
         this.rowKey = rowKey;
     }

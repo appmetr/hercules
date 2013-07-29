@@ -12,12 +12,24 @@ public abstract class AbstractBatchIterator<E, K> implements BatchIterator<E, K>
 
     protected boolean hasNext = true;
 
-    protected AbstractBatchIterator(K from, K to) {
+    public AbstractBatchIterator() {
+        this.from = null;
+        this.to = null;
+    }
+
+    public AbstractBatchIterator(int batchSize) {
+        this.from = null;
+        this.to = null;
+
+        this.batchSize = batchSize;
+    }
+
+    public AbstractBatchIterator(K from, K to) {
         this.from = from;
         this.to = to;
     }
 
-    protected AbstractBatchIterator(K from, K to, int batchSize) {
+    public AbstractBatchIterator(K from, K to, int batchSize) {
         this.from = from;
         this.to = to;
         this.batchSize = batchSize;
