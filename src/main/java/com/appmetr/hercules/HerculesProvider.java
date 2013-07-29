@@ -1,5 +1,5 @@
 package com.appmetr.hercules;
 
-public abstract class HerculesProvider {
-    public abstract Hercules getHercules();
+public interface HerculesProvider {
+    Hercules getHercules();
 }
