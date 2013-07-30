@@ -387,7 +387,7 @@ public class ThriftDataDriver implements DataDriver {
             return new HerculesMultiQueryResult<R, T>();
         }
 
-        Map<R, Map<T, Object>> result = new LinkedHashMap<R, Map<T, Object>>();
+        LinkedHashMap<R, LinkedHashMap<T, Object>> result = new LinkedHashMap<R, LinkedHashMap<T, Object>>();
 
         R lastKey = null;
         for (Row<R, T, ByteBuffer> row : rows) {
@@ -396,7 +396,7 @@ public class ThriftDataDriver implements DataDriver {
             List<HColumn<T, ByteBuffer>> columns = row.getColumnSlice().getColumns();
 
             if (columns.size() > 0) {
-                Map<T, Object> valueMap = new LinkedHashMap<T, Object>();
+                LinkedHashMap<T, Object> valueMap = new LinkedHashMap<T, Object>();
 
                 for (HColumn<T, ByteBuffer> column : columns) {
                     if (!rowSerializer.hasValueSerializer(column.getName())) continue;

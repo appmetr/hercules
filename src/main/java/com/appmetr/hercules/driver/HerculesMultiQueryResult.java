@@ -1,10 +1,9 @@
 package com.appmetr.hercules.driver;
 
 import java.util.LinkedHashMap;
-import java.util.Map;
 
 public class HerculesMultiQueryResult<R, T> {
-    private Map<R, Map<T, Object>> entries = new LinkedHashMap<R, Map<T, Object>>();
+    private LinkedHashMap<R, LinkedHashMap<T, Object>> entries = new LinkedHashMap<R, LinkedHashMap<T, Object>>();
     private R lastKey = null;  //Last loaded from DB key. Cause key may by deleted we need to know this last key outside
     boolean hasResult = false;
 
@@ -15,7 +14,7 @@ public class HerculesMultiQueryResult<R, T> {
         this.lastKey = lastKey;
     }
 
-    public HerculesMultiQueryResult(Map<R, Map<T, Object>> entries, R lastKey) {
+    public HerculesMultiQueryResult(LinkedHashMap<R, LinkedHashMap<T, Object>> entries, R lastKey) {
         this.entries = entries;
         this.lastKey = lastKey;
         this.hasResult = true;
@@ -25,7 +24,7 @@ public class HerculesMultiQueryResult<R, T> {
         return entries.containsKey(rowKey);
     }
 
-    public Map<R, Map<T, Object>> getEntries() {
+    public LinkedHashMap<R, LinkedHashMap<T, Object>> getEntries() {
         return entries;
     }
 

@@ -395,7 +395,7 @@ public class EntityManager {
                         this.<K>getRowSerializerForEntity(metadata), indexes);
 
                 if (queryResult.hasResult()) {
-                    for (Map.Entry<K, Map<String, Object>> entry : entitiesQueryResult.getEntries().entrySet()) {
+                    for (Map.Entry<K, LinkedHashMap<String, Object>> entry : entitiesQueryResult.getEntries().entrySet()) {
                         entities.add(convertToEntity(clazz, entry.getKey(), entry.getValue()));
                     }
                 }
@@ -509,10 +509,10 @@ public class EntityManager {
         }
     }
 
-    private <E, K> List<E> convertToEntityList(Class<E> clazz, Map<K, Map<String, Object>> values) {
+    private <E, K> List<E> convertToEntityList(Class<E> clazz, Map<K, LinkedHashMap<String, Object>> values) {
         List<E> entities = new ArrayList<E>();
 
-        for (Map.Entry<K, Map<String, Object>> entry : values.entrySet()) {
+        for (Map.Entry<K, LinkedHashMap<String, Object>> entry : values.entrySet()) {
             E entity = convertToEntity(clazz, entry.getKey(), entry.getValue());
 
             if (entity != null)
