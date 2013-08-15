@@ -41,7 +41,7 @@ public abstract class RangeBatchIterator<E, K> extends AbstractBatchIterator<E, 
     }
 
     @Override public List<E> next() {
-        List<E> batch = getRange(from, to, batchSize + 1);
+        List<E> batch = getRange(lastKey, to, batchSize + 1);
 
         List<E> result = new ArrayList<E>();
 
