@@ -3,10 +3,9 @@
   <groupId>com.appmetr</groupId>
   <artifactId>hercules</artifactId>
   <versioning>
-    <release>0.2.2</release>
     <versions>
-      <version>0.2.2</version>
+      <version>0.2.4-SNAPSHOT</version>
     </versions>
-    <lastUpdated>20130729093440</lastUpdated>
+    <lastUpdated>20130815130321</lastUpdated>
   </versioning>
 </metadata>
