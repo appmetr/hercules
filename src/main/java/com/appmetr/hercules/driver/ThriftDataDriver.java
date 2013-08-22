@@ -142,11 +142,7 @@ public class ThriftDataDriver implements DataDriver {
 
             rangeSlicesQuery.setKeys(from, to);
             rangeSlicesQuery.setRange(null, null, false, 1);
-
-            if (count != null) {
-                rangeSlicesQuery.setRowCount(count);
-            }
-
+            rangeSlicesQuery.setRowCount(getBoundedRowCount(count));
             rangeSlicesQuery.setReturnKeysOnly();
 
             return rangeSlicesQuery.execute().get().getCount();
@@ -235,14 +231,10 @@ public class ThriftDataDriver implements DataDriver {
                     rowSerializer.getTopKeySerializer(),
                     ByteBufferSerializer.get());
             rangeSlicesQuery.setColumnFamily(columnFamily);
-
+            rangeSlicesQuery.setRowCount(getBoundedRowCount(rowCount));
             rangeSlicesQuery.setKeys(rowFrom, rowTo);
 
             sliceDataSpecificator.fillRangeSliceQuery(rangeSlicesQuery);
-
-            if (rowCount != null) {
-                rangeSlicesQuery.setRowCount(rowCount);
-            }
 
             return buildQueryResult(rowSerializer, rangeSlicesQuery.execute().get());
         } finally {
