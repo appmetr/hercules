@@ -2,6 +2,7 @@ package com.appmetr.hercules.manager;
 
 import com.appmetr.hercules.Hercules;
 import com.appmetr.hercules.HerculesMonitoringGroup;
+import com.appmetr.hercules.FieldFilter;
 import com.appmetr.hercules.annotations.Id;
 import com.appmetr.hercules.driver.DataDriver;
 import com.appmetr.hercules.driver.HerculesMultiQueryResult;
@@ -184,14 +185,14 @@ public class EntityManager {
         }
     }
 
-    public <E> void save(E entity) {
+    public <E> void save(E entity, FieldFilter fieldFilter) {
         EntityMetadata metadata = getMetadata(entity.getClass());
         Object primaryKey = getPrimaryKey(entity, metadata);
 
-        save(primaryKey, entity);
+        save(primaryKey, entity, fieldFilter);
     }
 
-    public <E, K> void save(K primaryKey, E entity) {
+    public <E, K> void save(K primaryKey, E entity, FieldFilter fieldFilter) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Save " + entity.getClass().getSimpleName());
 
         try {
@@ -234,7 +235,7 @@ public class EntityManager {
                 }
             }
 
-            saveEntity(primaryKey, entity);
+            saveEntity(primaryKey, entity, fieldFilter);
             indexManager.updateIndexOnSave(entity, oldEntity);
 
             listenerInvocationHelper.invokePostPersistListener(metadata.getListenerMetadata(), entity);
@@ -528,7 +529,7 @@ public class EntityManager {
         throw new RuntimeException(descr, e);
     }
 
-    private <E, K> void saveEntity(K primaryKey, E entity) {
+    private <E, K> void saveEntity(K primaryKey, E entity, FieldFilter fieldFilter) {
         EntityMetadata metadata = getMetadata(entity.getClass());
 
         if (!entity.getClass().equals(metadata.getEntityClass())) {
@@ -540,6 +541,9 @@ public class EntityManager {
 
             Class<? extends AbstractHerculesSerializer> entitySerializerClass = metadata.getEntitySerializer();
             if (entitySerializerClass != null) {
+                if (fieldFilter == null) {
+                    throw new RuntimeException(MessageFormat.format("Selective save doesn't support for entity {0} with serializers", entity.getClass().getSimpleName()));
+                }
                 values.put(SERIALIZED_ENTITY_TOP_KEY, entity);
             } else {
                 boolean notNullValueExisted = false;
@@ -547,11 +551,13 @@ public class EntityManager {
                 for (Map.Entry<Field, String> entry : metadata.getFieldToColumn().entrySet()) {
                     Object value = entry.getKey().get(entity);
 
-                    if (value != null) {
-                        notNullValueExisted = true;
+                    if (fieldFilter == null || fieldFilter.accept(entry.getKey())) {
+                        if (value != null) {
+                            notNullValueExisted = true;
+                        }
+                        values.put(entry.getValue(), value);
                     }
 
-                    values.put(entry.getValue(), value);
                 }
 
                 if (!notNullValueExisted) {

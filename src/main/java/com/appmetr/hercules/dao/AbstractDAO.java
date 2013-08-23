@@ -2,6 +2,7 @@ package com.appmetr.hercules.dao;
 
 import com.appmetr.hercules.Hercules;
 import com.appmetr.hercules.HerculesProvider;
+import com.appmetr.hercules.FieldFilter;
 import com.appmetr.hercules.batch.BatchExecutor;
 import com.appmetr.hercules.batch.BatchProcessor;
 import com.appmetr.hercules.batch.iterator.DAOBatchIterator;
@@ -70,11 +71,19 @@ public abstract class AbstractDAO<E, K> {
     }
 
     public void save(K key, E entity) {
-        getHercules().getEntityManager().save(key, entity);
+        getHercules().getEntityManager().save(key, entity, null);
+    }
+
+    public void save(K key, E entity, FieldFilter fieldFilter) {
+        getHercules().getEntityManager().save(key, entity, fieldFilter);
     }
 
     public void save(E entity) {
-        getHercules().getEntityManager().save(entity);
+        getHercules().getEntityManager().save(entity, null);
+    }
+
+    public void save(E entity, FieldFilter fieldFilter) {
+        getHercules().getEntityManager().save(entity, fieldFilter);
     }
 
     public void save(Iterable<E> entities) {
