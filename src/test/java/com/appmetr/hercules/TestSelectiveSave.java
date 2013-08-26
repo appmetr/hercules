@@ -2,11 +2,14 @@ package com.appmetr.hercules;
 
 import com.appmetr.hercules.dao.TestEntityDAO;
 import com.appmetr.hercules.model.TestEntity;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.lang.reflect.Field;
 
 public class TestSelectiveSave extends TestHercules {
 
+    @Test
     public void testSimple() throws Exception {
 
         TestEntity entity = new TestEntity();
@@ -35,11 +38,7 @@ public class TestSelectiveSave extends TestHercules {
         entity = dao.get(entity.id);
 
         //check
-        assert "World".equals(entity.stringValue);
-        assert target.equals(entity.longValue);
-    }
-
-    protected void tearDown() throws Exception {
-        hercules.shutdown();
+        Assert.assertEquals("World", entity.stringValue);
+        Assert.assertEquals(target, entity.longValue);
     }
 }

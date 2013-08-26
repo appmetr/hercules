@@ -1,16 +1,18 @@
 package com.appmetr.hercules;
 
 import com.appmetr.hercules.model.TestEntity;
-import junit.framework.TestCase;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 
 import java.util.HashSet;
 import java.util.Set;
 
-public abstract class TestHercules extends TestCase {
+public abstract class TestHercules {
 
-    protected Hercules hercules;
+    protected static Hercules hercules;
 
-    @Override protected void setUp() throws Exception {
+    @BeforeClass
+    public static void init() throws Exception {
         Set<Class> classes = new HashSet<Class>();
 
         //Entity
@@ -28,4 +30,8 @@ public abstract class TestHercules extends TestCase {
         hercules.init();
     }
 
+    @AfterClass
+    public static void shutdown() throws Exception {
+        hercules.shutdown();
+    }
 }
