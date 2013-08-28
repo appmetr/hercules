@@ -16,7 +16,7 @@ public interface DataDriver {
     public static final int MAX_ROW_COUNT = 100000;
     public static final int MAX_TOP_COUNT = 100000;
 
-    Cluster getOrCreateCluster(String keyspaceName, String host);
+    Cluster getOrCreateCluster(String keyspaceName, String host, int maxActiveConnections);
     void shutdownCluster(Cluster cluster);
 
     Keyspace getOrCreateKeypace(String keyspaceName, int replicationFactor, Cluster cluster);

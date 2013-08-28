@@ -10,6 +10,7 @@ public class HerculesConfig {
     /* Constants */
     private String keyspaceName;
     private String cassandraHost;
+    private int maxActiveConnections;
     private int replicationFactor;
     private Boolean schemaModificationEnabled;
 
@@ -20,9 +21,10 @@ public class HerculesConfig {
     public HerculesConfig() {
     }
 
-    public HerculesConfig(String keyspaceName, String cassandraHost, int replicationFactor, Boolean schemaModificationEnabled, Set<Class> entityClasses) {
+    public HerculesConfig(String keyspaceName, String cassandraHost, int maxActiveConnections, int replicationFactor, Boolean schemaModificationEnabled, Set<Class> entityClasses) {
         this.keyspaceName = keyspaceName;
         this.cassandraHost = cassandraHost;
+        this.maxActiveConnections = maxActiveConnections;
         this.replicationFactor = replicationFactor;
         this.schemaModificationEnabled = schemaModificationEnabled;
 
@@ -54,6 +56,14 @@ public class HerculesConfig {
 
     public void setCassandraHost(String cassandraHost) {
         this.cassandraHost = cassandraHost;
+    }
+
+    public int getMaxActiveConnections() {
+        return maxActiveConnections;
+    }
+
+    public void setMaxActiveConnections(int maxActiveConnections) {
+        this.maxActiveConnections = maxActiveConnections;
     }
 
     public int getReplicationFactor() {
