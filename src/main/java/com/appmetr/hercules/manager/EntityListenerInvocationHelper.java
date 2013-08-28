@@ -45,6 +45,22 @@ class EntityListenerInvocationHelper {
         }
     }
 
+    public <E> E invokePreDeleteListener(EntityListenerMetadata listenerMetadata, E entity) {
+        Method method = listenerMetadata.getPreDeleteMethod();
+        if (method != null) {
+            return invokeListenerMethod(listenerMetadata, method, entity);
+        }
+
+        return null;
+    }
+
+    public <E> void invokePostDeleteListener(EntityListenerMetadata listenerMetadata, E entity) {
+        Method method = listenerMetadata.getPostDeleteMethod();
+        if (method != null) {
+            invokeListenerMethod(listenerMetadata, method, entity);
+        }
+    }
+
     private <E> E invokeListenerMethod(EntityListenerMetadata listenerMetadata, Method method, E entity) {
         Object obj = getEntityListener(listenerMetadata);
 

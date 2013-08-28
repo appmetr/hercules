@@ -1,6 +1,7 @@
 package com.appmetr.hercules.operations;
 
 import com.appmetr.hercules.manager.WideEntityManager;
+import com.appmetr.hercules.profile.DataOperationsProfile;
 import com.google.inject.Inject;
 
 import java.util.ArrayList;
@@ -24,7 +25,11 @@ public class OperationsCollector<T extends ExecutableOperation> {
     }
 
     public OperationsResult execute() {
-        return entityManager.executeOperations(this);
+        return execute(null);
+    }
+
+    public OperationsResult execute(DataOperationsProfile dataOperationsProfile) {
+        return entityManager.executeOperations(this, dataOperationsProfile);
     }
 
     public List<T> getOperations() {

@@ -13,6 +13,7 @@ import com.appmetr.hercules.operations.OperationsCollector;
 import com.appmetr.hercules.operations.OperationsResult;
 import com.appmetr.hercules.partition.NoPartitionProvider;
 import com.appmetr.hercules.partition.PartitionProvider;
+import com.appmetr.hercules.profile.DataOperationsProfile;
 import com.appmetr.hercules.serializers.SerializerProvider;
 import com.appmetr.hercules.wide.SliceDataSpecificator;
 import com.appmetr.hercules.wide.SliceDataSpecificatorByCF;
@@ -39,34 +40,34 @@ public class WideEntityManager {
     @Inject private SerializerProvider serializerProvider;
     @Inject private EntityListenerInvocationHelper listenerInvocationHelper;
 
-    public <E, R, T> E get(Class<E> clazz, R rowKey, T topKey) {
+    public <E, R, T> E get(Class<E> clazz, R rowKey, T topKey, DataOperationsProfile dataOperationsProfile) {
         if (topKey == null) return null;
 
-        List<E> entities = get(clazz, rowKey, new SliceDataSpecificator<T>(topKey));
+        List<E> entities = get(clazz, rowKey, new SliceDataSpecificator<T>(topKey), dataOperationsProfile);
         return entities.size() > 0 ? entities.get(0) : null;
     }
 
-    public <E, R, T> List<E> get(Class<E> clazz, R rowKey) {
-        return get(clazz, rowKey, new SliceDataSpecificator<T>(null, null, false, null));
+    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, DataOperationsProfile dataOperationsProfile) {
+        return get(clazz, rowKey, new SliceDataSpecificator<T>(null, null, false, null), dataOperationsProfile);
     }
 
-    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, T[] columns) {
-        return get(clazz, rowKey, new SliceDataSpecificator<T>(columns));
+    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, T[] columns, DataOperationsProfile dataOperationsProfile) {
+        return get(clazz, rowKey, new SliceDataSpecificator<T>(columns), dataOperationsProfile);
     }
 
-    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, Collection<T> columns) {
-        return get(clazz, rowKey, new SliceDataSpecificator<T>(columns));
+    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, Collection<T> columns, DataOperationsProfile dataOperationsProfile) {
+        return get(clazz, rowKey, new SliceDataSpecificator<T>(columns), dataOperationsProfile);
     }
 
-    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, T from, T to) {
-        return get(clazz, rowKey, new SliceDataSpecificator<T>(from, to, false, null));
+    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, T from, T to, DataOperationsProfile dataOperationsProfile) {
+        return get(clazz, rowKey, new SliceDataSpecificator<T>(from, to, false, null), dataOperationsProfile);
     }
 
-    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, T from, T to, boolean reverse, Integer count) {
-        return get(clazz, rowKey, new SliceDataSpecificator<T>(from, to, reverse, count));
+    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, T from, T to, boolean reverse, Integer count, DataOperationsProfile dataOperationsProfile) {
+        return get(clazz, rowKey, new SliceDataSpecificator<T>(from, to, reverse, count), dataOperationsProfile);
     }
 
-    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, SliceDataSpecificator<T> sliceDataSpecificator) {
+    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, SliceDataSpecificator<T> sliceDataSpecificator, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_WM, "Get " + clazz.getSimpleName());
 
         try {
@@ -88,7 +89,7 @@ public class WideEntityManager {
                     }
 
                     HerculesQueryResult<T> result = dataDriver.getSlice(
-                            hercules.getKeyspace(), metadata.getColumnFamily() + kv.getPartitionName(), rowSerializer, rowKey,
+                            hercules.getKeyspace(), metadata.getColumnFamily() + kv.getPartitionName(), dataOperationsProfile, rowSerializer, rowKey,
                             new SliceDataSpecificator<T>(
                                     kv.getSliceDataSpecificator().getStart(),
                                     kv.getSliceDataSpecificator().getEnd(),
@@ -103,7 +104,7 @@ public class WideEntityManager {
             } else if (sliceDataSpecificator.getType() == SliceDataSpecificator.SliceDataSpecificatorType.COLUMNS) {
                 for (SliceDataSpecificatorByCF<T> kv : partQueries) {
                     HerculesQueryResult<T> result = dataDriver.getSlice(
-                            hercules.getKeyspace(), metadata.getColumnFamily() + kv.getPartitionName(), rowSerializer, rowKey,
+                            hercules.getKeyspace(), metadata.getColumnFamily() + kv.getPartitionName(), dataOperationsProfile, rowSerializer, rowKey,
                             kv.getSliceDataSpecificator());
 
                     if (result.hasResult()) {
@@ -149,11 +150,11 @@ public class WideEntityManager {
         return getTopKey(entity, getMetadata(clazz));
     }
 
-    public <E, R> void save(R rowKey, E entity) {
-        save(rowKey, getTopKey(entity, getMetadata(entity.getClass())), entity);
+    public <E, R> void save(R rowKey, E entity, DataOperationsProfile dataOperationsProfile) {
+        save(rowKey, getTopKey(entity, getMetadata(entity.getClass())), entity, dataOperationsProfile);
     }
 
-    public <E, R, T> void save(Class<E> clazz, R rowKey, Iterable<E> entities) {
+    public <E, R, T> void save(Class<E> clazz, R rowKey, Iterable<E> entities, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_WM, "Save " + clazz.getSimpleName());
 
         try {
@@ -179,7 +180,7 @@ public class WideEntityManager {
 
             //Save regrouped entities
             for (String cfName : partitionedValues.keySet()) {
-                dataDriver.insert(hercules.getKeyspace(), cfName, this.<R, T>getRowSerializerForEntity(metadata), rowKey, partitionedValues.get(cfName));
+                dataDriver.insert(hercules.getKeyspace(), cfName, dataOperationsProfile, this.<R, T>getRowSerializerForEntity(metadata), rowKey, partitionedValues.get(cfName));
 
                 for (Map.Entry<T, Object> entry : partitionedValues.get(cfName).entrySet()) {
                     listenerInvocationHelper.invokePostPersistListener(metadata.getListenerMetadata(), entry.getValue());
@@ -190,7 +191,7 @@ public class WideEntityManager {
         }
     }
 
-    public <E, R, T> void save(R rowKey, T topKey, E value) {
+    public <E, R, T> void save(R rowKey, T topKey, E value, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_WM, "Save " + value.getClass().getSimpleName());
 
         try {
@@ -201,7 +202,7 @@ public class WideEntityManager {
                 value = prePersistResult;
             }
 
-            dataDriver.insert(hercules.getKeyspace(), getCFName(metadata, rowKey, topKey), getRowSerializerForEntity(metadata),
+            dataDriver.insert(hercules.getKeyspace(), getCFName(metadata, rowKey, topKey), dataOperationsProfile, getRowSerializerForEntity(metadata),
                     rowKey, topKey, value);
 
             listenerInvocationHelper.invokePostPersistListener(metadata.getListenerMetadata(), value);
@@ -210,7 +211,7 @@ public class WideEntityManager {
         }
     }
 
-    public <R> void delete(Class<?> clazz, R rowKey) {
+    public <R> void delete(Class<?> clazz, R rowKey, DataOperationsProfile dataOperationsProfile) {
         WideEntityMetadata metadata = getMetadata(clazz);
 
         Set<String> columnFamilies = hercules.getColumnFamilies();
@@ -218,30 +219,35 @@ public class WideEntityManager {
             String cfFullName = metadata.getColumnFamily() + cfName;
 
             if (columnFamilies.contains(cfFullName)) {
-                dataDriver.delete(hercules.getKeyspace(), cfFullName, getRowSerializerForEntity(metadata), rowKey);
+                if (metadata.getListenerMetadata().getPreDeleteMethod() != null ||
+                        metadata.getListenerMetadata().getPostDeleteMethod() != null) {
+                    logger.warn("Pre/Post delete listener doesn't invoke for row delete");
+                }
+
+                dataDriver.delete(hercules.getKeyspace(), cfFullName, dataOperationsProfile, getRowSerializerForEntity(metadata), rowKey);
             }
         }
     }
 
-    public <E, R> void delete(Class<?> clazz, R rowKey, E entity) {
-        deleteByKeys(clazz, rowKey, Arrays.asList(getTopKey(entity, getMetadata(entity.getClass()))));
+    public <E, R> void delete(Class<?> clazz, R rowKey, E entity, DataOperationsProfile dataOperationsProfile) {
+        deleteByKeys(clazz, rowKey, Arrays.asList(getTopKey(entity, getMetadata(entity.getClass()))), dataOperationsProfile);
     }
 
-    public <E, R, T> void delete(Class<?> clazz, R rowKey, Iterable<E> entities) {
+    public <E, R, T> void delete(Class<?> clazz, R rowKey, Iterable<E> entities, DataOperationsProfile dataOperationsProfile) {
         List<T> topKeys = new ArrayList<T>();
 
         for (E entity : entities) {
             topKeys.add(this.<E, T>getTopKey(entity, getMetadata(entity.getClass())));
         }
 
-        deleteByKeys(clazz, rowKey, topKeys);
+        deleteByKeys(clazz, rowKey, topKeys, dataOperationsProfile);
     }
 
-    public <R, T> void deleteByKey(Class<?> clazz, R rowKey, T topKey) {
-        deleteByKeys(clazz, rowKey, Arrays.asList(topKey));
+    public <R, T> void deleteByKey(Class<?> clazz, R rowKey, T topKey, DataOperationsProfile dataOperationsProfile) {
+        deleteByKeys(clazz, rowKey, Arrays.asList(topKey), dataOperationsProfile);
     }
 
-    public <R, T> void deleteByKeys(Class<?> clazz, R rowKey, Iterable<T> topKeys) {
+    public <R, T> void deleteByKeys(Class<?> clazz, R rowKey, Iterable<T> topKeys, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_WM, "Delete by keys " + clazz.getSimpleName());
 
         try {
@@ -260,7 +266,7 @@ public class WideEntityManager {
             }
 
             for (String cfName : partitionedTopKeys.keySet()) {
-                dataDriver.delete(hercules.getKeyspace(), cfName, this.<R, T>getRowSerializerForEntity(metadata), rowKey, partitionedTopKeys.get(cfName));
+                dataDriver.delete(hercules.getKeyspace(), cfName, dataOperationsProfile, this.<R, T>getRowSerializerForEntity(metadata), rowKey, partitionedTopKeys.get(cfName));
             }
 
         } finally {
@@ -268,7 +274,7 @@ public class WideEntityManager {
         }
     }
 
-    public <E, R, T> List<R> getKeyRange(Class<E> clazz, R from, R to, int batchSize) {
+    public <E, R, T> List<R> getKeyRange(Class<E> clazz, R from, R to, int batchSize, DataOperationsProfile dataOperationsProfile) {
         WideEntityMetadata metadata = getMetadata(clazz);
 
         if (!metadata.getPartitionProviderClass().equals(NoPartitionProvider.class)) {
@@ -276,10 +282,10 @@ public class WideEntityManager {
         }
 
         RowSerializer<R, T> rowSerializer = getRowSerializerForEntity(metadata);
-        return dataDriver.getKeyRange(hercules.getKeyspace(), metadata.getColumnFamily(), rowSerializer, from, to, batchSize);
+        return dataDriver.getKeyRange(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile, rowSerializer, from, to, batchSize);
     }
 
-    public <E, R, T> List<R> getAllRowKeys(Class<E> clazz) {
+    public <E, R, T> List<R> getAllRowKeys(Class<E> clazz, DataOperationsProfile dataOperationsProfile) {
         WideEntityMetadata metadata = getMetadata(clazz);
         List<String> partitions = getPartitionProvider(metadata).getPartitionsForCreation();
 
@@ -287,7 +293,7 @@ public class WideEntityManager {
 
         List<R> rowKeys = new ArrayList<R>();
         for (String partition : partitions) {
-            rowKeys.addAll(dataDriver.<R, T>getKeyRange(hercules.getKeyspace(), metadata.getColumnFamily() + partition, rowSerializer, null, null, null));
+            rowKeys.addAll(dataDriver.<R, T>getKeyRange(hercules.getKeyspace(), metadata.getColumnFamily() + partition, dataOperationsProfile, rowSerializer, null, null, null));
         }
 
         return rowKeys;
@@ -299,7 +305,7 @@ public class WideEntityManager {
         return getPartitionProvider(metadata).getPartitionsForCreation();
     }
 
-    public <O extends ExecutableOperation> OperationsResult executeOperations(OperationsCollector<O> collector) {
+    public <O extends ExecutableOperation> OperationsResult executeOperations(OperationsCollector<O> collector, DataOperationsProfile dataOperationsProfile) {
         try {
             OperationsCollector.Type operationType = null;
 
@@ -399,18 +405,18 @@ public class WideEntityManager {
                     case DELETE:
                         if (rowDelete) {
                             for (String cfName : (List<String>) rowDeleteMetadata.getPartitionProvider().getPartitionsForCreation()) {
-                                dataDriver.delete(hercules.getKeyspace(), rowDeleteMetadata.getColumnFamily() + cfName, operationRowSerializer, rowKey);
+                                dataDriver.delete(hercules.getKeyspace(), rowDeleteMetadata.getColumnFamily() + cfName, dataOperationsProfile, operationRowSerializer, rowKey);
                             }
                         } else {
                             for (String cfName : data.keySet()) {
-                                dataDriver.delete(hercules.getKeyspace(), cfName, operationRowSerializer, rowKey, data.get(cfName).keySet());
+                                dataDriver.delete(hercules.getKeyspace(), cfName, dataOperationsProfile, operationRowSerializer, rowKey, data.get(cfName).keySet());
                             }
                         }
 
                         break;
                     case SAVE:
                         for (String cfName : data.keySet()) {
-                            dataDriver.insert(hercules.getKeyspace(), cfName, operationRowSerializer, rowKey, data.get(cfName));
+                            dataDriver.insert(hercules.getKeyspace(), cfName, dataOperationsProfile, operationRowSerializer, rowKey, data.get(cfName));
                             ;
                         }
 
@@ -419,7 +425,7 @@ public class WideEntityManager {
                         List resultObjects = new ArrayList<Object>();
 
                         for (String cfName : data.keySet()) {
-                            HerculesQueryResult queryResult = dataDriver.getSlice(hercules.getKeyspace(), cfName,
+                            HerculesQueryResult queryResult = dataDriver.getSlice(hercules.getKeyspace(), cfName, dataOperationsProfile,
                                     operationRowSerializer, rowKey, new SliceDataSpecificator<Object>(data.get(cfName).keySet()));
 
                             for (Object topKey : queryResult.getEntries().keySet()) {

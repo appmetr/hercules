@@ -1,13 +1,14 @@
 package com.appmetr.hercules.dao;
 
+import com.appmetr.hercules.FieldFilter;
 import com.appmetr.hercules.Hercules;
 import com.appmetr.hercules.HerculesProvider;
-import com.appmetr.hercules.FieldFilter;
 import com.appmetr.hercules.batch.BatchExecutor;
 import com.appmetr.hercules.batch.BatchProcessor;
 import com.appmetr.hercules.batch.iterator.DAOBatchIterator;
 import com.appmetr.hercules.batch.iterator.ImmutableKeyBatchIterator;
 import com.appmetr.hercules.keys.ForeignKey;
+import com.appmetr.hercules.profile.DataOperationsProfile;
 import com.appmetr.hercules.utils.Tuple2;
 
 import java.util.List;
@@ -39,102 +40,194 @@ public abstract class AbstractDAO<E, K> {
     }
 
     public E get(K key) {
-        return getHercules().getEntityManager().get(entityClass, key);
+        return get(key, null);
+    }
+
+    public E get(K key, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getEntityManager().get(entityClass, key, dataOperationsProfile);
     }
 
     public List<E> get(Iterable<K> keys) {
-        return getHercules().getEntityManager().get(entityClass, keys);
+        return get(keys, null);
+    }
+
+    public List<E> get(Iterable<K> keys, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getEntityManager().get(entityClass, keys, dataOperationsProfile);
     }
 
     public List<E> getAll() {
-        return getHercules().getEntityManager().getAll(entityClass);
+        return getAll(null);
+    }
+
+    public List<E> getAll(DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getEntityManager().getAll(entityClass, dataOperationsProfile);
     }
 
     public List<E> getRange(K from, K to, Integer count) {
-        return getHercules().getEntityManager().getRange(entityClass, from, to, count).e1;
+        return getRange(from, to, count, null);
+    }
+
+    public List<E> getRange(K from, K to, Integer count, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getEntityManager().getRange(entityClass, from, to, count, dataOperationsProfile).e1;
     }
 
     public Tuple2<List<E>, K> getRangeWithLastKey(K from, K to, Integer count) {
-        return getHercules().getEntityManager().getRange(entityClass, from, to, count);
+        return getRangeWithLastKey(from, to, count, null);
+    }
+
+    public Tuple2<List<E>, K> getRangeWithLastKey(K from, K to, Integer count, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getEntityManager().getRange(entityClass, from, to, count, dataOperationsProfile);
     }
 
     public List<E> getByFK(ForeignKey foreignKey) {
-        return getHercules().getEntityManager().getByFK(entityClass, foreignKey);
+        return getByFK(foreignKey, null);
+    }
+
+    public List<E> getByFK(ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getEntityManager().getByFK(entityClass, foreignKey, dataOperationsProfile);
     }
 
     public E getSingleByFK(ForeignKey foreignKey) {
-        return getHercules().getEntityManager().getSingleByFK(entityClass, foreignKey);
+        return getSingleByFK(foreignKey, null);
+    }
+
+    public E getSingleByFK(ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getEntityManager().getSingleByFK(entityClass, foreignKey, dataOperationsProfile);
     }
 
     public int getCountByFK(ForeignKey foreignKey) {
-        return getHercules().getEntityManager().getCountByFK(entityClass, foreignKey);
+        return getCountByFK(foreignKey, null);
+    }
+
+    public int getCountByFK(ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getEntityManager().getCountByFK(entityClass, foreignKey, dataOperationsProfile);
     }
 
     public void save(K key, E entity) {
-        getHercules().getEntityManager().save(key, entity, null);
+        save(key, entity, (DataOperationsProfile) null);
+    }
+
+    public void save(K key, E entity, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getEntityManager().save(key, entity, null, dataOperationsProfile);
     }
 
     public void save(K key, E entity, FieldFilter fieldFilter) {
-        getHercules().getEntityManager().save(key, entity, fieldFilter);
+        save(key, entity, fieldFilter, null);
+    }
+
+    public void save(K key, E entity, FieldFilter fieldFilter, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getEntityManager().save(key, entity, fieldFilter, dataOperationsProfile);
     }
 
     public void save(E entity) {
-        getHercules().getEntityManager().save(entity, null);
+        save(entity, (DataOperationsProfile) null);
+    }
+
+    public void save(E entity, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getEntityManager().save(entity, null, dataOperationsProfile);
     }
 
     public void save(E entity, FieldFilter fieldFilter) {
-        getHercules().getEntityManager().save(entity, fieldFilter);
+        save(entity, fieldFilter, null);
+    }
+
+    public void save(E entity, FieldFilter fieldFilter, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getEntityManager().save(entity, fieldFilter, dataOperationsProfile);
     }
 
     public void save(Iterable<E> entities) {
-        for (E entity : entities) save(entity);
+        save(entities, null);
+    }
+
+    public void save(Iterable<E> entities, DataOperationsProfile dataOperationsProfile) {
+        for (E entity : entities) save(entity, dataOperationsProfile);
     }
 
     public void delete(E entity) {
-        getHercules().getEntityManager().delete(entity);
+        delete(entity, null);
+    }
+
+    public void delete(E entity, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getEntityManager().delete(entity, dataOperationsProfile);
     }
 
     public void delete(List<E> entities) {
+        delete(entities, null);
+    }
+
+    public void delete(List<E> entities, DataOperationsProfile dataOperationsProfile) {
         for (E entity : entities) {
             delete(entity);
         }
     }
 
     public void deleteByKey(K key) {
-        getHercules().getEntityManager().delete(entityClass, key);
+        deleteByKey(key, null);
+    }
+
+    public void deleteByKey(K key, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getEntityManager().delete(entityClass, key, dataOperationsProfile);
     }
 
     public void deleteByKeys(List<K> keys) {
+        deleteByKeys(keys, null);
+    }
+
+    public void deleteByKeys(List<K> keys, DataOperationsProfile dataOperationsProfile) {
         for (K key : keys) {
-            deleteByKey(key);
+            deleteByKey(key, dataOperationsProfile);
         }
     }
 
     public int processAll(BatchProcessor<E> processor) {
-        return processRange(null, null, Hercules.DEFAULT_BATCH_SIZE, processor);
+        return processAll(processor, null);
+    }
+
+    public int processAll(BatchProcessor<E> processor, DataOperationsProfile dataOperationsProfile) {
+        return processRange(null, null, Hercules.DEFAULT_BATCH_SIZE, processor, dataOperationsProfile);
     }
 
     public int processAll(Integer batchSize, BatchProcessor<E> processor) {
+        return processAll(batchSize, processor, null);
+    }
+
+    public int processAll(Integer batchSize, BatchProcessor<E> processor, DataOperationsProfile dataOperationsProfile) {
         return processRange(null, null, batchSize, processor);
     }
 
     public int processRange(K from, K to, Integer batchSize, BatchProcessor<E> processor) {
-        return new BatchExecutor<E, K>(new DAOBatchIterator<E, K>(this, from, to, batchSize), processor).execute();
+        return processRange(from, to, batchSize, processor, null);
+    }
+
+    public int processRange(K from, K to, Integer batchSize, BatchProcessor<E> processor, DataOperationsProfile dataOperationsProfile) {
+        return new BatchExecutor<E, K>(new DAOBatchIterator<E, K>(this, from, to, batchSize), processor).execute(dataOperationsProfile);
     }
 
     public int processAllKeys(BatchProcessor<K> processor) {
+        return processAllKeys(processor, null);
+    }
+
+    public int processAllKeys(BatchProcessor<K> processor, DataOperationsProfile dataOperationsProfile) {
         return processKeyRange(null, null, Hercules.DEFAULT_BATCH_SIZE, processor);
     }
 
     public int processAllKeys(Integer batchSize, BatchProcessor<K> processor) {
+        return processAllKeys(batchSize, processor, null);
+    }
+
+    public int processAllKeys(Integer batchSize, BatchProcessor<K> processor, DataOperationsProfile dataOperationsProfile) {
         return processKeyRange(null, null, batchSize, processor);
     }
 
     public int processKeyRange(K from, K to, Integer batchSize, BatchProcessor<K> processor) {
+        return processKeyRange(from, to, batchSize, processor, null);
+    }
+
+    public int processKeyRange(K from, K to, Integer batchSize, BatchProcessor<K> processor, DataOperationsProfile dataOperationsProfile) {
         return new BatchExecutor<K, K>(new ImmutableKeyBatchIterator<K>(from, to, batchSize) {
-            @Override public List<K> getRange(K from, K to, int batchSize) {
-                return getHercules().getEntityManager().getKeyRange(entityClass, from, to, batchSize);
+            @Override public List<K> getRange(K from, K to, int batchSize, DataOperationsProfile dataOperationsProfile) {
+                return getHercules().getEntityManager().getKeyRange(entityClass, from, to, batchSize, dataOperationsProfile);
             }
-        }, processor).execute();
+        }, processor).execute(dataOperationsProfile);
     }
 }

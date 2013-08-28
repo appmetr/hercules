@@ -38,6 +38,12 @@ public class WideEntityMetadataExtractor {
         if (metadata.getListenerMetadata().getPreLoadMethod() != null) {
             throw new RuntimeException("Wide entity " + clazz.getSimpleName() + " shouldn't contain PreLoad method listener");
         }
+        if (metadata.getListenerMetadata().getPreDeleteMethod() != null) {
+            throw new RuntimeException("Wide entity " + clazz.getSimpleName() + " shouldn't contain PreDelete method listener");
+        }
+        if (metadata.getListenerMetadata().getPostDeleteMethod() != null) {
+            throw new RuntimeException("Wide entity " + clazz.getSimpleName() + " shouldn't contain PostDelete method listener");
+        }
 
         Class<? extends PartitionProvider> providerClass = null;
         if (clazz.isAnnotationPresent(Partitioned.class)) {

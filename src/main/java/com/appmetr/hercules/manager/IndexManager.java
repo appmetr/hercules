@@ -10,6 +10,7 @@ import com.appmetr.hercules.driver.HerculesMultiQueryResult;
 import com.appmetr.hercules.driver.serializer.ByteArrayRowSerializer;
 import com.appmetr.hercules.metadata.EntityMetadata;
 import com.appmetr.hercules.metadata.ForeignKeyMetadata;
+import com.appmetr.hercules.profile.DataOperationsProfile;
 import com.appmetr.hercules.utils.Tuple2;
 import com.appmetr.hercules.wide.SliceDataSpecificator;
 import com.google.inject.Inject;
@@ -37,7 +38,7 @@ public class IndexManager {
         checkAndCreateFKIndexes(metadata);
     }
 
-    <E, K> void updateIndexOnSave(E entity, E oldEntity) {
+    <E, K> void updateIndexOnSave(E entity, E oldEntity, DataOperationsProfile dataOperationsProfile) {
         EntityMetadata metadata = entityManager.getMetadata(entity.getClass());
 
         K primaryKey = entityManager.getPrimaryKey(entity, metadata);
@@ -45,7 +46,7 @@ public class IndexManager {
 
         //create primary key index
         if (metadata.isCreatePrimaryKeyIndex()) {
-            insertRowIndex(EntityManager.PRIMARY_KEY_CF_NAME, metadata.getColumnFamily(), StringSerializer.get(), primaryKey, entityManager.getPrimaryKeySerializer(metadata));
+            insertRowIndex(EntityManager.PRIMARY_KEY_CF_NAME, metadata.getColumnFamily(), StringSerializer.get(), primaryKey, entityManager.getPrimaryKeySerializer(metadata), dataOperationsProfile);
         }
 
         for (ForeignKeyMetadata foreignKeyMetadata : metadata.getIndexes().values()) {
@@ -59,24 +60,24 @@ public class IndexManager {
             if (foreignKey == null) {
                 if (oldIndexKey != null) {
                     logger.debug(MessageFormat.format("Deleting index: column {0} from {1} by key {2} ", primaryKey, foreignKeyMetadata.getColumnFamily(), oldIndexKey));
-                    deleteRowIndexes(foreignKeyMetadata.getColumnFamily(), oldIndexKey, foreignKeySerializer, indexedKeys, primaryKeySerializer);
+                    deleteRowIndexes(foreignKeyMetadata.getColumnFamily(), oldIndexKey, foreignKeySerializer, indexedKeys, primaryKeySerializer, dataOperationsProfile);
                 }
             } else {
 
                 if (oldIndexKey != null && !foreignKey.equals(oldIndexKey)) {
                     logger.debug(MessageFormat.format("Deleting index: column {0} from {1} by key {2} ", primaryKey, foreignKeyMetadata.getColumnFamily(), oldIndexKey));
-                    deleteRowIndexes(foreignKeyMetadata.getColumnFamily(), oldIndexKey, foreignKeySerializer, indexedKeys, primaryKeySerializer);
+                    deleteRowIndexes(foreignKeyMetadata.getColumnFamily(), oldIndexKey, foreignKeySerializer, indexedKeys, primaryKeySerializer, dataOperationsProfile);
                 }
 
                 //don't recreate index if it's value equals to old one
                 if (!foreignKey.equals(oldIndexKey)) {
-                    insertRowIndex(foreignKeyMetadata.getColumnFamily(), foreignKey, foreignKeySerializer, primaryKey, primaryKeySerializer);
+                    insertRowIndex(foreignKeyMetadata.getColumnFamily(), foreignKey, foreignKeySerializer, primaryKey, primaryKeySerializer, dataOperationsProfile);
                 }
             }
         }
     }
 
-    <E, K> void updateIndexOnDelete(E entity) {
+    <E, K> void updateIndexOnDelete(E entity, DataOperationsProfile dataOperationsProfile) {
         EntityMetadata metadata = entityManager.getMetadata(entity.getClass());
 
         K primaryKey = entityManager.getPrimaryKey(entity, metadata);
@@ -91,13 +92,13 @@ public class IndexManager {
                 continue;
             }
 
-            deleteRowIndexes(index.getColumnFamily(), indexKey, entityManager.getForeignKeySerializer(index), indexedId, primaryKeySerializer);
+            deleteRowIndexes(index.getColumnFamily(), indexKey, entityManager.getForeignKeySerializer(index), indexedId, primaryKeySerializer, dataOperationsProfile);
         }
 
         //redundant check. Only for reducing number of cassandra operations
         //delete primary key index
         if (metadata.isCreatePrimaryKeyIndex()) {
-            deleteRowIndexes(EntityManager.PRIMARY_KEY_CF_NAME, metadata.getColumnFamily(), StringSerializer.get(), Arrays.asList(primaryKey), primaryKeySerializer);
+            deleteRowIndexes(EntityManager.PRIMARY_KEY_CF_NAME, metadata.getColumnFamily(), StringSerializer.get(), Arrays.asList(primaryKey), primaryKeySerializer, dataOperationsProfile);
         }
     }
 
@@ -107,7 +108,7 @@ public class IndexManager {
 
         logger.debug("Checking PK index table for CF: " + cfName);
 
-        HerculesMultiQueryResult result = dataDriver.getSlice(hercules.getKeyspace(), EntityManager.PRIMARY_KEY_CF_NAME,
+        HerculesMultiQueryResult result = dataDriver.getSlice(hercules.getKeyspace(), EntityManager.PRIMARY_KEY_CF_NAME, null,
                 new ByteArrayRowSerializer<String, Object>(StringSerializer.get(), entityManager.getPrimaryKeySerializer(metadata)), Arrays.asList(cfName),
                 new SliceDataSpecificator<Object>(null, null, false, 1));
         /*
@@ -133,7 +134,7 @@ public class IndexManager {
                     }
             ).execute();
 
-            dataDriver.insert(hercules.getKeyspace(), EntityManager.PRIMARY_KEY_CF_NAME,
+            dataDriver.insert(hercules.getKeyspace(), EntityManager.PRIMARY_KEY_CF_NAME, null,
                     new ByteArrayRowSerializer<String, Object>(StringSerializer.get(), entityManager.getPrimaryKeySerializer(metadata)),
                     cfName, valuesToInsert);
         }
@@ -173,7 +174,7 @@ public class IndexManager {
                             }
 
                             logger.debug("Inserting index [" + foreignKey + "][" + primaryKey + "].");
-                            insertRowIndex(keyMetadata.getColumnFamily(), foreignKey, foreignKeySerializer, primaryKey, primaryKeySerializer);
+                            insertRowIndex(keyMetadata.getColumnFamily(), foreignKey, foreignKeySerializer, primaryKey, primaryKeySerializer, null);
 
                             rowsInserted[0]++;
                         }
@@ -185,22 +186,22 @@ public class IndexManager {
         return rowsInserted[0];
     }
 
-    private <K, T> void insertRowIndex(String columnFamily, K indexRowKey, Serializer<K> indexRowKeySerializer, T indexValue, Serializer<T> indexValueSerializer) {
-        dataDriver.insert(hercules.getKeyspace(), columnFamily,
+    private <K, T> void insertRowIndex(String columnFamily, K indexRowKey, Serializer<K> indexRowKeySerializer, T indexValue, Serializer<T> indexValueSerializer, DataOperationsProfile dataOperationsProfile) {
+        dataDriver.insert(hercules.getKeyspace(), columnFamily, dataOperationsProfile,
                 new ByteArrayRowSerializer<K, T>(indexRowKeySerializer, indexValueSerializer),
                 indexRowKey, indexValue, new byte[0]);
     }
 
-    private <K, T> void deleteRowIndexes(String columnFamily, K indexRowKey, Serializer<K> indexRowKeySerializer, List<T> columns, Serializer<T> columnSerializer) {
-        dataDriver.delete(hercules.getKeyspace(), columnFamily,
+    private <K, T> void deleteRowIndexes(String columnFamily, K indexRowKey, Serializer<K> indexRowKeySerializer, List<T> columns, Serializer<T> columnSerializer, DataOperationsProfile dataOperationsProfile) {
+        dataDriver.delete(hercules.getKeyspace(), columnFamily, dataOperationsProfile,
                 new ByteArrayRowSerializer<K, T>(indexRowKeySerializer, columnSerializer),
                 indexRowKey, columns);
     }
 
     private BatchIterator<Object, Object> getEntityClassBatchIterator(final Class clazz) {
         return new TupleBatchIterator<Object, Object>(null, null) {
-            @Override protected Tuple2 getRangeTuple(Object from, Object to, int batchSize) {
-                return entityManager.getRange(clazz, from, to, batchSize);
+            @Override protected Tuple2 getRangeTuple(Object from, Object to, int batchSize, DataOperationsProfile dataOperationsProfile) {
+                return entityManager.getRange(clazz, from, to, batchSize, dataOperationsProfile);
             }
 
             @Override protected Object getKey(Object item) {

@@ -9,6 +9,7 @@ import com.appmetr.hercules.operations.DeleteExecutableOperation;
 import com.appmetr.hercules.operations.GetExecutableOperation;
 import com.appmetr.hercules.operations.OperationsCollector;
 import com.appmetr.hercules.operations.SaveExecutableOperation;
+import com.appmetr.hercules.profile.DataOperationsProfile;
 import com.appmetr.hercules.wide.SliceDataSpecificator;
 import com.google.inject.Key;
 import com.google.inject.TypeLiteral;
@@ -40,31 +41,59 @@ public abstract class AbstractWideDAO<E, R, T> {
     }
 
     public E get(R rowKey, T topKey) {
-        return getHercules().getWideEntityManager().get(entityClass, rowKey, topKey);
+        return get(rowKey, topKey, (DataOperationsProfile) null);
+    }
+
+    public E get(R rowKey, T topKey, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getWideEntityManager().get(entityClass, rowKey, topKey, dataOperationsProfile);
     }
 
     public List<E> get(R rowKey) {
-        return getHercules().getWideEntityManager().get(entityClass, rowKey);
+        return get(rowKey, (DataOperationsProfile) null);
+    }
+
+    public List<E> get(R rowKey, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getWideEntityManager().get(entityClass, rowKey, dataOperationsProfile);
     }
 
     public List<E> get(R rowKey, T[] columns) {
-        return getHercules().getWideEntityManager().get(entityClass, rowKey, columns);
+        return get(rowKey, columns, null);
+    }
+
+    public List<E> get(R rowKey, T[] columns, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getWideEntityManager().get(entityClass, rowKey, columns, dataOperationsProfile);
     }
 
     public List<E> get(R rowKey, Collection<T> columns) {
-        return getHercules().getWideEntityManager().get(entityClass, rowKey, columns);
+        return get(rowKey, columns, null);
+    }
+
+    public List<E> get(R rowKey, Collection<T> columns, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getWideEntityManager().get(entityClass, rowKey, columns, dataOperationsProfile);
     }
 
     public List<E> get(R rowKey, T from, T to) {
-        return getHercules().getWideEntityManager().get(entityClass, rowKey, from, to);
+        return get(rowKey, from, to, null);
+    }
+
+    public List<E> get(R rowKey, T from, T to, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getWideEntityManager().get(entityClass, rowKey, from, to, dataOperationsProfile);
     }
 
     public List<E> get(R rowKey, T from, T to, boolean reverse, Integer count) {
-        return getHercules().getWideEntityManager().get(entityClass, rowKey, from, to, reverse, count);
+        return get(rowKey, from, to, reverse, count, null);
+    }
+
+    public List<E> get(R rowKey, T from, T to, boolean reverse, Integer count, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getWideEntityManager().get(entityClass, rowKey, from, to, reverse, count, dataOperationsProfile);
     }
 
     public List<E> get(R rowKey, SliceDataSpecificator<T> sliceDataSpecificator) {
-        return getHercules().getWideEntityManager().get(entityClass, rowKey, sliceDataSpecificator);
+        return get(rowKey, sliceDataSpecificator, null);
+    }
+
+    public List<E> get(R rowKey, SliceDataSpecificator<T> sliceDataSpecificator, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getWideEntityManager().get(entityClass, rowKey, sliceDataSpecificator, dataOperationsProfile);
     }
 
     public T getTopKey(E entity) {
@@ -72,35 +101,67 @@ public abstract class AbstractWideDAO<E, R, T> {
     }
 
     public void save(R rowKey, E entity) {
-        save(rowKey, getTopKey(entity), entity);
+        save(rowKey, entity, null);
+    }
+
+    public void save(R rowKey, E entity, DataOperationsProfile dataOperationsProfile) {
+        save(rowKey, getTopKey(entity), entity, dataOperationsProfile);
     }
 
     public void save(R rowKey, Iterable<E> entities) {
-        getHercules().getWideEntityManager().save(entityClass, rowKey, entities);
+        save(rowKey, entities, null);
+    }
+
+    public void save(R rowKey, Iterable<E> entities, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getWideEntityManager().save(entityClass, rowKey, entities, dataOperationsProfile);
     }
 
     public void save(R rowKey, T topKey, E value) {
-        getHercules().getWideEntityManager().save(rowKey, topKey, value);
+        save(rowKey, topKey, value, null);
+    }
+
+    public void save(R rowKey, T topKey, E value, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getWideEntityManager().save(rowKey, topKey, value, dataOperationsProfile);
     }
 
     public void delete(R rowKey) {
-        getHercules().getWideEntityManager().delete(entityClass, rowKey);
+        delete(rowKey, (DataOperationsProfile) null);
+    }
+
+    public void delete(R rowKey, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getWideEntityManager().delete(entityClass, rowKey, dataOperationsProfile);
     }
 
     public void delete(R rowKey, E entity) {
-        getHercules().getWideEntityManager().delete(entityClass, rowKey, entity);
+        delete(rowKey, entity, null);
+    }
+
+    public void delete(R rowKey, E entity, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getWideEntityManager().delete(entityClass, rowKey, entity, dataOperationsProfile);
     }
 
     public void delete(R rowKey, Iterable<E> entities) {
-        getHercules().getWideEntityManager().delete(entityClass, rowKey, entities);
+        delete(rowKey, entities, null);
+    }
+
+    public void delete(R rowKey, Iterable<E> entities, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getWideEntityManager().delete(entityClass, rowKey, entities, dataOperationsProfile);
     }
 
     public void deleteByKey(R rowKey, T topKey) {
-        getHercules().getWideEntityManager().deleteByKey(entityClass, rowKey, topKey);
+        deleteByKey(rowKey, topKey, null);
+    }
+
+    public void deleteByKey(R rowKey, T topKey, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getWideEntityManager().deleteByKey(entityClass, rowKey, topKey, dataOperationsProfile);
     }
 
     public void deleteByKeys(R rowKey, Iterable<T> topKeys) {
-        getHercules().getWideEntityManager().deleteByKeys(entityClass, rowKey, topKeys);
+        deleteByKeys(rowKey, topKeys, null);
+    }
+
+    public void deleteByKeys(R rowKey, Iterable<T> topKeys, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getWideEntityManager().deleteByKeys(entityClass, rowKey, topKeys, dataOperationsProfile);
     }
 
     public int processAll(R rowKey, BatchProcessor<E> processor) {
@@ -116,11 +177,19 @@ public abstract class AbstractWideDAO<E, R, T> {
     }
 
     public List<R> getKeyRange(R from, R to, int batchSize) {
-        return getHercules().getWideEntityManager().getKeyRange(entityClass, from, to, batchSize);
+        return getKeyRange(from, to, batchSize, null);
+    }
+
+    public List<R> getKeyRange(R from, R to, int batchSize, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getWideEntityManager().getKeyRange(entityClass, from, to, batchSize, dataOperationsProfile);
     }
 
     public List<R> getAllRowKeys() {
-        return getHercules().getWideEntityManager().getAllRowKeys(entityClass);
+        return getAllRowKeys(null);
+    }
+
+    public List<R> getAllRowKeys(DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getWideEntityManager().getAllRowKeys(entityClass, dataOperationsProfile);
     }
 
     public OperationsCollector<GetExecutableOperation> getOperationFor(R rowKey, T topKeys) {

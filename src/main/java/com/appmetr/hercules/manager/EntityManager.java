@@ -1,8 +1,8 @@
 package com.appmetr.hercules.manager;
 
+import com.appmetr.hercules.FieldFilter;
 import com.appmetr.hercules.Hercules;
 import com.appmetr.hercules.HerculesMonitoringGroup;
-import com.appmetr.hercules.FieldFilter;
 import com.appmetr.hercules.annotations.Id;
 import com.appmetr.hercules.driver.DataDriver;
 import com.appmetr.hercules.driver.HerculesMultiQueryResult;
@@ -13,6 +13,7 @@ import com.appmetr.hercules.driver.serializer.RowSerializer;
 import com.appmetr.hercules.keys.ForeignKey;
 import com.appmetr.hercules.metadata.EntityMetadata;
 import com.appmetr.hercules.metadata.ForeignKeyMetadata;
+import com.appmetr.hercules.profile.DataOperationsProfile;
 import com.appmetr.hercules.serializers.AbstractHerculesSerializer;
 import com.appmetr.hercules.serializers.SerializerProvider;
 import com.appmetr.hercules.utils.Tuple2;
@@ -55,7 +56,7 @@ public class EntityManager {
         return getPrimaryKeySerializer(getMetadata(clazz));
     }
 
-    public <E, K> E get(Class<E> clazz, K primaryKey) {
+    public <E, K> E get(Class<E> clazz, K primaryKey, DataOperationsProfile dataOperationsProfile) {
         if (primaryKey == null) return null;
 
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get by PK " + clazz.getSimpleName());
@@ -63,7 +64,7 @@ public class EntityManager {
         try {
             EntityMetadata metadata = getMetadata(clazz);
 
-            HerculesQueryResult<String> queryResult = dataDriver.getRow(hercules.getKeyspace(), metadata.getColumnFamily(), getRowSerializerForEntity(metadata), primaryKey);
+            HerculesQueryResult<String> queryResult = dataDriver.getRow(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile, getRowSerializerForEntity(metadata), primaryKey);
 
             if (queryResult.hasResult()) {
                 return convertToEntity(clazz, primaryKey, queryResult.getEntries());
@@ -79,13 +80,13 @@ public class EntityManager {
         }
     }
 
-    public <E, K> List<E> get(Class<E> clazz, Iterable<K> primaryKeys) {
+    public <E, K> List<E> get(Class<E> clazz, Iterable<K> primaryKeys, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get list by PK " + clazz.getSimpleName());
 
         try {
             EntityMetadata metadata = getMetadata(clazz);
 
-            HerculesMultiQueryResult<K, String> queryResult = dataDriver.getRows(hercules.getKeyspace(), metadata.getColumnFamily(),
+            HerculesMultiQueryResult<K, String> queryResult = dataDriver.getRows(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile,
                     this.<K>getRowSerializerForEntity(metadata), primaryKeys);
 
             if (queryResult.hasResult()) {
@@ -102,13 +103,13 @@ public class EntityManager {
         }
     }
 
-    public <E, K> List<K> getKeyRange(Class<E> clazz, K from, K to, Integer count) {
+    public <E, K> List<K> getKeyRange(Class<E> clazz, K from, K to, Integer count, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get key range " + clazz.getSimpleName());
 
         try {
             EntityMetadata metadata = getMetadata(clazz);
 
-            return dataDriver.getKeyRange(hercules.getKeyspace(), metadata.getColumnFamily(), this.<K>getRowSerializerForEntity(metadata), from, to, count);
+            return dataDriver.getKeyRange(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile, this.<K>getRowSerializerForEntity(metadata), from, to, count);
         } catch (RuntimeException e) {
             monitoring.inc(HerculesMonitoringGroup.HERCULES_EM, "Error: getting entities key range");
             logger.error("Get key range exception", e);
@@ -118,13 +119,13 @@ public class EntityManager {
         }
     }
 
-    public <E, K> Tuple2<List<E>, K> getRange(Class<E> clazz, K from, K to, Integer count) {
+    public <E, K> Tuple2<List<E>, K> getRange(Class<E> clazz, K from, K to, Integer count, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get range " + clazz.getSimpleName());
 
         try {
             EntityMetadata metadata = getMetadata(clazz);
 
-            HerculesMultiQueryResult<K, String> queryResult = dataDriver.getRangeSlice(hercules.getKeyspace(), metadata.getColumnFamily(),
+            HerculesMultiQueryResult<K, String> queryResult = dataDriver.getRangeSlice(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile,
                     this.<K>getRowSerializerForEntity(metadata), from, to, count, new SliceDataSpecificator<String>(null, null, false, null));
 
             if (queryResult.hasResult()) {
@@ -141,37 +142,37 @@ public class EntityManager {
         }
     }
 
-    public <E> List<E> getAll(Class<E> clazz) {
+    public <E> List<E> getAll(Class<E> clazz, DataOperationsProfile dataOperationsProfile) {
         EntityMetadata metadata = getMetadata(clazz);
 
         List<E> entities;
         if (metadata.isCreatePrimaryKeyIndex()) {
-            entities = getAllByIndex(clazz);
+            entities = getAllByIndex(clazz, dataOperationsProfile);
         } else {
-            entities = getAllPlain(clazz);
+            entities = getAllPlain(clazz, dataOperationsProfile);
         }
 
         return entities;
     }
 
-    public <E> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey) {
-        return getByFK(clazz, foreignKey, null);
+    public <E> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
+        return getByFK(clazz, foreignKey, dataOperationsProfile);
     }
 
-    public <E> E getSingleByFK(Class<E> clazz, ForeignKey foreignKey) {
-        List<E> entites = getByFK(clazz, foreignKey, 1);
+    public <E> E getSingleByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
+        List<E> entites = getByFK(clazz, foreignKey, 1, dataOperationsProfile);
 
         return entites.size() > 0 ? entites.get(0) : null;
     }
 
-    public <E> int getCountByFK(Class<E> clazz, ForeignKey foreignKey) {
+    public <E> int getCountByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get count by FK " + clazz.getSimpleName());
 
         try {
             EntityMetadata metadata = getMetadata(clazz);
             ForeignKeyMetadata foreignKeyMetadata = metadata.getIndexMetadata(foreignKey.getClass());
 
-            return dataDriver.getTopCount(hercules.getKeyspace(), foreignKeyMetadata.getColumnFamily(),
+            return dataDriver.getTopCount(hercules.getKeyspace(), foreignKeyMetadata.getColumnFamily(), dataOperationsProfile,
                     new ByteArrayRowSerializer<Object, Object>(
                             getForeignKeySerializer(foreignKeyMetadata),
                             getPrimaryKeySerializer(metadata)),
@@ -185,14 +186,14 @@ public class EntityManager {
         }
     }
 
-    public <E> void save(E entity, FieldFilter fieldFilter) {
+    public <E> void save(E entity, FieldFilter fieldFilter, DataOperationsProfile dataOperationsProfile) {
         EntityMetadata metadata = getMetadata(entity.getClass());
         Object primaryKey = getPrimaryKey(entity, metadata);
 
-        save(primaryKey, entity, fieldFilter);
+        save(primaryKey, entity, fieldFilter, dataOperationsProfile);
     }
 
-    public <E, K> void save(K primaryKey, E entity, FieldFilter fieldFilter) {
+    public <E, K> void save(K primaryKey, E entity, FieldFilter fieldFilter, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Save " + entity.getClass().getSimpleName());
 
         try {
@@ -228,15 +229,15 @@ public class EntityManager {
 
             E oldEntity = null;
             if (metadata.getIndexes().size() > 0) {
-                HerculesQueryResult<String> queryResult = dataDriver.getRow(hercules.getKeyspace(), metadata.getColumnFamily(), getRowSerializerForEntity(metadata), primaryKey);
+                HerculesQueryResult<String> queryResult = dataDriver.getRow(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile, getRowSerializerForEntity(metadata), primaryKey);
 
                 if (queryResult.hasResult()) {
                     oldEntity = (E) this.<E, K>convertToEntity(metadata.getEntityClass(), primaryKey, queryResult.getEntries());
                 }
             }
 
-            saveEntity(primaryKey, entity, fieldFilter);
-            indexManager.updateIndexOnSave(entity, oldEntity);
+            saveEntity(primaryKey, entity, fieldFilter, dataOperationsProfile);
+            indexManager.updateIndexOnSave(entity, oldEntity, dataOperationsProfile);
 
             listenerInvocationHelper.invokePostPersistListener(metadata.getListenerMetadata(), entity);
         } catch (RuntimeException e) {
@@ -248,18 +249,25 @@ public class EntityManager {
         }
     }
 
-    public <E> void delete(E entity) {
+    public <E> void delete(E entity, DataOperationsProfile dataOperationsProfile) {
         if (entity == null) return;
 
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Delete " + entity.getClass().getSimpleName());
 
         try {
             EntityMetadata metadata = getMetadata(entity.getClass());
+
+            E preDeleteResult = listenerInvocationHelper.invokePreDeleteListener(metadata.getListenerMetadata(), entity);
+            if (preDeleteResult != null) {
+                entity = preDeleteResult;
+            }
             Object primaryKey = getPrimaryKey(entity, metadata);
 
-            delete(primaryKey, getMetadata(metadata.getEntityClass()));
+            delete(primaryKey, getMetadata(metadata.getEntityClass()), dataOperationsProfile);
 
-            indexManager.updateIndexOnDelete(entity);
+            listenerInvocationHelper.invokePostDeleteListener(metadata.getListenerMetadata(), entity);
+
+            indexManager.updateIndexOnDelete(entity, dataOperationsProfile);
         } catch (RuntimeException e) {
             monitoring.inc(HerculesMonitoringGroup.HERCULES_EM, "Error: deleting exception");
             logger.error("Entity delete exception", e);
@@ -269,9 +277,9 @@ public class EntityManager {
         }
     }
 
-    public <K> void delete(Class clazz, K primaryKey) {
+    public <K> void delete(Class clazz, K primaryKey, DataOperationsProfile dataOperationsProfile) {
         //Can't delete entity by PK directly, cause we need to delete indexes
-        delete(get(clazz, primaryKey));
+        delete(get(clazz, primaryKey, dataOperationsProfile), dataOperationsProfile);
     }
 
     //package level
@@ -351,13 +359,13 @@ public class EntityManager {
     }
 
     //private level
-    private <E, K> List<E> getAllPlain(Class<E> clazz) {
+    private <E, K> List<E> getAllPlain(Class<E> clazz, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get all plain " + clazz.getSimpleName());
 
         try {
             EntityMetadata metadata = getMetadata(clazz);
 
-            HerculesMultiQueryResult<K, String> result = dataDriver.getAllRows(hercules.getKeyspace(), metadata.getColumnFamily(), this.<K>getRowSerializerForEntity(metadata));
+            HerculesMultiQueryResult<K, String> result = dataDriver.getAllRows(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile, this.<K>getRowSerializerForEntity(metadata));
 
             List<E> entities = new ArrayList<E>();
             if (result.hasResult()) {
@@ -376,7 +384,7 @@ public class EntityManager {
         }
     }
 
-    private <E, K> List<E> getAllByIndex(Class<E> clazz) {
+    private <E, K> List<E> getAllByIndex(Class<E> clazz, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get all by index " + clazz.getSimpleName());
 
         try {
@@ -385,6 +393,7 @@ public class EntityManager {
             HerculesQueryResult<K> queryResult = dataDriver.getRow(
                     hercules.getKeyspace(),
                     PRIMARY_KEY_CF_NAME,
+                    dataOperationsProfile,
                     new ByteArrayRowSerializer<String, K>(StringSerializer.get(), this.<K>getPrimaryKeySerializer(metadata)),
                     metadata.getColumnFamily());
 
@@ -392,7 +401,7 @@ public class EntityManager {
 
             List<E> entities = new ArrayList<E>();
             if (indexes.size() > 0) {
-                HerculesMultiQueryResult<K, String> entitiesQueryResult = dataDriver.getRows(hercules.getKeyspace(), metadata.getColumnFamily(),
+                HerculesMultiQueryResult<K, String> entitiesQueryResult = dataDriver.getRows(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile,
                         this.<K>getRowSerializerForEntity(metadata), indexes);
 
                 if (queryResult.hasResult()) {
@@ -412,19 +421,19 @@ public class EntityManager {
         }
     }
 
-    private <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Integer count) {
+    private <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Integer count, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get list by FK " + clazz.getSimpleName());
 
         try {
             EntityMetadata metadata = getMetadata(clazz);
             ForeignKeyMetadata foreignKeyMetadata = metadata.getIndexMetadata(foreignKey.getClass());
 
-            HerculesQueryResult<K> queryResult = dataDriver.getSlice(hercules.getKeyspace(), foreignKeyMetadata.getColumnFamily(),
+            HerculesQueryResult<K> queryResult = dataDriver.getSlice(hercules.getKeyspace(), foreignKeyMetadata.getColumnFamily(), dataOperationsProfile,
                     new ByteArrayRowSerializer<Object, K>(getForeignKeySerializer(metadata.getIndexMetadata(foreignKey.getClass())), this.<K>getPrimaryKeySerializer(metadata)),
                     foreignKey, new SliceDataSpecificator<K>(null, null, false, count));
 
             if (queryResult.hasResult()) {
-                return get(clazz, queryResult.getEntries().keySet());
+                return get(clazz, queryResult.getEntries().keySet(), dataOperationsProfile);
             } else {
                 return new ArrayList<E>();
             }
@@ -437,8 +446,8 @@ public class EntityManager {
         }
     }
 
-    private <K> void delete(K primaryKey, EntityMetadata metadata) {
-        dataDriver.delete(hercules.getKeyspace(), metadata.getColumnFamily(),
+    private <K> void delete(K primaryKey, EntityMetadata metadata, DataOperationsProfile dataOperationsProfile) {
+        dataDriver.delete(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile,
                 new ByteArrayRowSerializer<K, String>(this.<K>getPrimaryKeySerializer(metadata), dataDriver.<String>getSerializerForClass(String.class)),
                 primaryKey);
     }
@@ -529,7 +538,7 @@ public class EntityManager {
         throw new RuntimeException(descr, e);
     }
 
-    private <E, K> void saveEntity(K primaryKey, E entity, FieldFilter fieldFilter) {
+    private <E, K> void saveEntity(K primaryKey, E entity, FieldFilter fieldFilter, DataOperationsProfile dataOperationsProfile) {
         EntityMetadata metadata = getMetadata(entity.getClass());
 
         if (!entity.getClass().equals(metadata.getEntityClass())) {
@@ -567,7 +576,7 @@ public class EntityManager {
                 }
             }
 
-            dataDriver.insert(hercules.getKeyspace(), metadata.getColumnFamily(), getRowSerializerForEntity(metadata), primaryKey, values);
+            dataDriver.insert(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile, getRowSerializerForEntity(metadata), primaryKey, values);
         } catch (IllegalAccessException e) {
             String msg = "Error: build value map for " + entity.getClass().getName();
             monitoring.inc(HerculesMonitoringGroup.HERCULES_EM, msg);

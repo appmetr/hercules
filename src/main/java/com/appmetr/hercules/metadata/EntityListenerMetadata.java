@@ -10,6 +10,8 @@ public class EntityListenerMetadata {
     private Method postLoadMethod;
     private Method prePersistMethod;
     private Method postPersistMethod;
+    private Method preDeleteMethod;
+    private Method postDeleteMethod;
 
     public Class getEntityListenerClass() {
         return entityListenerClass;
@@ -57,5 +59,21 @@ public class EntityListenerMetadata {
 
     public void setPostPersistMethod(Method postPersistMethod) {
         this.postPersistMethod = postPersistMethod;
+    }
+
+    public Method getPreDeleteMethod() {
+        return preDeleteMethod;
+    }
+
+    public void setPreDeleteMethod(Method preDeleteMethod) {
+        this.preDeleteMethod = preDeleteMethod;
+    }
+
+    public Method getPostDeleteMethod() {
+        return postDeleteMethod;
+    }
+
+    public void setPostDeleteMethod(Method postDeleteMethod) {
+        this.postDeleteMethod = postDeleteMethod;
     }
 }

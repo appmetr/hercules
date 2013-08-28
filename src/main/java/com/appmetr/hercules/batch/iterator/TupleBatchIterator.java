@@ -1,5 +1,6 @@
 package com.appmetr.hercules.batch.iterator;
 
+import com.appmetr.hercules.profile.DataOperationsProfile;
 import com.appmetr.hercules.utils.Tuple2;
 
 import java.util.List;
@@ -23,11 +24,11 @@ public abstract class TupleBatchIterator<E, K> extends AbstractBatchIterator<E, 
         super(from, to, batchSize);
     }
 
-    protected abstract Tuple2<List<E>, K> getRangeTuple(K from, K to, int batchSize);
+    protected abstract Tuple2<List<E>, K> getRangeTuple(K from, K to, int batchSize, DataOperationsProfile dataOperationsProfile);
     protected abstract K getKey(E item);
 
-    @Override public List<E> next() {
-        Tuple2<List<E>, K> range = getRangeTuple(from, to, batchSize + 1);
+    @Override public List<E> next(DataOperationsProfile dataOperationsProfile) {
+        Tuple2<List<E>, K> range = getRangeTuple(from, to, batchSize + 1, dataOperationsProfile);
         List<E> batch = range.e1;
 
         K lastKeyInBatch = batch.size() > 0 ? getKey(batch.get(batch.size() - 1)) : null;

@@ -1,5 +1,7 @@
 package com.appmetr.hercules.batch.iterator;
 
+import com.appmetr.hercules.profile.DataOperationsProfile;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +19,7 @@ public abstract class RangeBatchIterator<E, K> extends AbstractBatchIterator<E, 
     protected K lastKey;
 
     //Override this method in child classes
-    protected abstract List<E> getRange(K from, K to, int batchSize);
+    protected abstract List<E> getRange(K from, K to, int batchSize, DataOperationsProfile dataOperationsProfile);
     protected abstract K getKey(E item);
 
     public RangeBatchIterator() {
@@ -40,8 +42,8 @@ public abstract class RangeBatchIterator<E, K> extends AbstractBatchIterator<E, 
         lastKey = from;
     }
 
-    @Override public List<E> next() {
-        List<E> batch = getRange(lastKey, to, batchSize + 1);
+    @Override public List<E> next(DataOperationsProfile dataOperationsProfile) {
+        List<E> batch = getRange(lastKey, to, batchSize + 1, dataOperationsProfile);
 
         List<E> result = new ArrayList<E>();
 

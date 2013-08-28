@@ -71,8 +71,7 @@ public class MetadataExtractorUtils {
         return listenerMetadata;
     }
 
-    public static boolean setListenersFromClass(Class clazz, EntityListenerMetadata metadata) {
-        boolean isMethodFound = false;
+    public static void setListenersFromClass(Class clazz, EntityListenerMetadata metadata) {
 
         for (Method method : clazz.getDeclaredMethods()) {
             if (method.isAnnotationPresent(PreLoad.class)) {
@@ -81,7 +80,6 @@ public class MetadataExtractorUtils {
                 }
 
                 metadata.setPreLoadMethod(method);
-                isMethodFound = true;
             }
             if (method.isAnnotationPresent(PostLoad.class)) {
                 if (metadata.getPostLoadMethod() != null) {
@@ -89,7 +87,6 @@ public class MetadataExtractorUtils {
                 }
 
                 metadata.setPostLoadMethod(method);
-                isMethodFound = true;
             }
             if (method.isAnnotationPresent(PrePersist.class)) {
                 if (metadata.getPrePersistMethod() != null) {
@@ -98,7 +95,6 @@ public class MetadataExtractorUtils {
 
 
                 metadata.setPrePersistMethod(method);
-                isMethodFound = true;
             }
             if (method.isAnnotationPresent(PostPersist.class)) {
                 if (metadata.getPostPersistMethod() != null) {
@@ -107,10 +103,21 @@ public class MetadataExtractorUtils {
 
 
                 metadata.setPostPersistMethod(method);
-                isMethodFound = true;
+            }
+            if (method.isAnnotationPresent(PreDelete.class)) {
+                if (metadata.getPreDeleteMethod() != null) {
+                    throw new RuntimeException("Multiply PreDelete method declaration in class " + clazz.getSimpleName());
+                }
+
+                metadata.setPreDeleteMethod(method);
+            }
+            if (method.isAnnotationPresent(PostDelete.class)) {
+                if (metadata.getPostDeleteMethod() != null) {
+                    throw new RuntimeException("Multiply PostDelete method declaration in class " + clazz.getSimpleName());
+                }
+
+                metadata.setPostDeleteMethod(method);
             }
         }
-
-        return isMethodFound;
     }
 }
