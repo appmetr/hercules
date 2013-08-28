@@ -59,7 +59,7 @@
         <dependency>
             <groupId>com.appmetr</groupId>
             <artifactId>monblank-java</artifactId>
-            <version>0.1</version>
+            <version>0.2.1</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

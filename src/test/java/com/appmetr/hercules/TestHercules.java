@@ -21,6 +21,7 @@ public abstract class TestHercules {
         HerculesConfig config = new HerculesConfig(
                 "Test",
                 "localhost:9160",
+                100,
                 1,
                 true,
                 classes
