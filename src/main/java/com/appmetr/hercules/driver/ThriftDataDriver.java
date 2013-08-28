@@ -324,16 +324,22 @@ public class ThriftDataDriver implements DataDriver {
 
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Insert " + columnFamily);
 
+        int serializedDataSize = 0;
         try {
             if (value == null) {
                 mutator.delete(serializedRowKey, columnFamily, topKey, rowSerializer.getTopKeySerializer());
             } else {
-                mutator.insert(serializedRowKey, columnFamily, HFactory.createColumn(topKey, value, rowSerializer.getTopKeySerializer(), rowSerializer.getValueSerializer(topKey)));
+                Serializer serializer = rowSerializer.hasValueSerializer(topKey) ? rowSerializer.getValueSerializer(topKey) : getSerializerForObject(value);
+                ByteBuffer serializedValue = serializer.toByteBuffer(value);
+                serializedDataSize += serializedValue.remaining();
+
+                mutator.insert(serializedRowKey, columnFamily, HFactory.createColumn(topKey, serializedValue, rowSerializer.getTopKeySerializer(), ByteBufferSerializer.get()));
             }
         } finally {
             long time = monitor.stop();
             if (dataOperationsProfile != null) {
                 dataOperationsProfile.ms += time;
+                dataOperationsProfile.bytes += serializedDataSize;
                 dataOperationsProfile.dbQueries++;
             }
         }
@@ -353,6 +359,7 @@ public class ThriftDataDriver implements DataDriver {
 
         Mutator<ByteBuffer> mutator = HFactory.createMutator(keyspace, ByteBufferSerializer.get());
 
+        int serializedDataSize = 0;
         for (R rowKey : values.keySet()) {
             ByteBuffer serializedRowKey = rowKeySerializer.toByteBuffer(rowKey);
             if (serializedRowKey == null) {
@@ -368,7 +375,10 @@ public class ThriftDataDriver implements DataDriver {
                 if (value == null) {
                     mutator.addDeletion(serializedRowKey, columnFamily, topKey, rowSerializer.getTopKeySerializer());
                 } else {
-                    HColumn column = HFactory.createColumn(topKey, value, rowSerializer.getTopKeySerializer(), serializer);
+                    ByteBuffer serializedValue = serializer.toByteBuffer(value);
+                    serializedDataSize += serializedValue.remaining();
+
+                    HColumn column = HFactory.createColumn(topKey, serializedValue, rowSerializer.getTopKeySerializer(), ByteBufferSerializer.get());
                     mutator.addInsertion(serializedRowKey, columnFamily, column);
                 }
             }
@@ -382,6 +392,7 @@ public class ThriftDataDriver implements DataDriver {
             long time = monitor.stop();
             if (dataOperationsProfile != null) {
                 dataOperationsProfile.ms += time;
+                dataOperationsProfile.bytes += serializedDataSize;
                 dataOperationsProfile.dbQueries++;
             }
         }
