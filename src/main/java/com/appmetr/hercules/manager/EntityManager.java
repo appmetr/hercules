@@ -156,7 +156,7 @@ public class EntityManager {
     }
 
     public <E> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
-        return getByFK(clazz, foreignKey, dataOperationsProfile);
+        return getByFK(clazz, foreignKey, null, dataOperationsProfile);
     }
 
     public <E> E getSingleByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
