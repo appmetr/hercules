@@ -53,16 +53,16 @@ interacting with Cassandra-specific data model.</p>
 <li>does not store null fields</li>
 </ul>
 
+
 <h3>Get It! <a id="get-it"></a></h3>
 
-<p>Current version is 0.1 &mdash; initial public release. Has been used only in several
-internal projects. <em>Use it in production at your own risk.</em></p>
+<p>Current version is 0.4.2. Has been used only in several internal projects. <em>Use it in production at your own risk.</em></p>
 
-<p>Maven repo (currently hosted on github – add this to <code>&lt;repositories&gt;</code> in your <code>pom.xml</code>):</p>
+<p>Maven repo (currently hosted on BinTray – add this to <code>&lt;repositories&gt;</code> in your <code>pom.xml</code>):</p>
 
 <pre><code>&lt;repository&gt;
-    &lt;id&gt;hercules&lt;/id&gt;
-    &lt;url&gt;https://raw.github.com/appmetr/hercules/mvn-repo/&lt;/url&gt;
+    &lt;id&gt;appmetr-repo&lt;/id&gt;
+    &lt;url&gt;http://dl.bintray.com/appmetr/maven&lt;/url&gt;
 &lt;/repository&gt;
 </code></pre>
 
@@ -71,15 +71,19 @@ internal projects. <em>Use it in production at your own risk.</em></p>
 <pre><code>&lt;dependency&gt;
     &lt;groupId&gt;com.appmetr&lt;/groupId&gt;
     &lt;artifactId&gt;hercules&lt;/artifactId&gt;
-    &lt;version&gt;0.1&lt;/version&gt;
+    &lt;version&gt;0.4.2&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
 
-<p>Latest binaries: <a href="https://raw.github.com/appmetr/hercules/mvn-repo/com/appmetr/hercules/0.1/hercules-0.1.jar">hercules-0.1.jar</a></p>
+<p>https://bintray.com/appmetr/maven/hercules/0.4.2/files</p>
 
-<p>Latest source code: <a href="https://raw.github.com/appmetr/hercules/mvn-repo/com/appmetr/hercules/0.1/hercules-0.1-sources.jar">hercules-0.1-sources.jar</a></p>
+<p>Latest binaries and sources on BinTray: <a href="http://dl.bintray.com/appmetr/maven/com/appmetr/hercules/0.4.2/hercules-0.4.2.jar">hercules-0.4.2.jar</a></p>
+
+<p>Latest source code: <a href="http://dl.bintray.com/appmetr/maven/com/appmetr/hercules/0.4.2/hercules-0.4.2-sources.jar">hercules-0.4.2-sources.jar</a></p>
 
 <p>Fork on GitHub: <a href="https://github.com/appmetr/hercules">https://github.com/appmetr/hercules</a></p>
+
+<p>Browse releases on BinTray: <a href="https://bintray.com/appmetr/maven/hercules">https://bintray.com/appmetr/maven/hercules</a></p>
 
 <h3>Quick Start <a id="quick-start"></a></h3>
 
@@ -116,6 +120,7 @@ entityClasses.add(Cat.class);
 HerculesConfig config = new HerculesConfig(
     "Test",             // keyspace name
     "localhost:9160",   // cassandra host and port
+    10,                 // max active connections
     1,                  // replication factor
     true,               // is schema modification enabled
     entityClasses

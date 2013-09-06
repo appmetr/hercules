@@ -19,14 +19,13 @@ interacting with Cassandra-specific data model.
 
 ### Get It! <a id="get-it"></a>
 
-Current version is 0.1 &mdash; initial public release. Has been used only in several
-internal projects. *Use it in production at your own risk.*
+Current version is 0.4.2. Has been used only in several internal projects. *Use it in production at your own risk.*
 
-Maven repo (currently hosted on github – add this to `<repositories>` in your `pom.xml`):
+Maven repo (currently hosted on BinTray – add this to `<repositories>` in your `pom.xml`):
 
 	<repository>
-		<id>hercules</id>
-		<url>https://raw.github.com/appmetr/hercules/mvn-repo/</url>
+		<id>appmetr-repo</id>
+		<url>http://dl.bintray.com/appmetr/maven</url>
 	</repository>
 
 
@@ -35,16 +34,18 @@ Maven dependency (add this to `<dependencies>` in your `pom.xml`):
 	<dependency>
 		<groupId>com.appmetr</groupId>
 		<artifactId>hercules</artifactId>
-		<version>0.1</version>
+		<version>0.4.2</version>
 	</dependency>
 
+https://bintray.com/appmetr/maven/hercules/0.4.2/files
 
+Latest binaries and sources on BinTray: [hercules-0.4.2.jar](http://dl.bintray.com/appmetr/maven/com/appmetr/hercules/0.4.2/hercules-0.4.2.jar)
 
-Latest binaries: [hercules-0.1.jar](https://raw.github.com/appmetr/hercules/mvn-repo/com/appmetr/hercules/0.1/hercules-0.1.jar)
-
-Latest source code: [hercules-0.1-sources.jar](https://raw.github.com/appmetr/hercules/mvn-repo/com/appmetr/hercules/0.1/hercules-0.1-sources.jar)
+Latest source code: [hercules-0.4.2-sources.jar](http://dl.bintray.com/appmetr/maven/com/appmetr/hercules/0.4.2/hercules-0.4.2-sources.jar)
 
 Fork on GitHub: [https://github.com/appmetr/hercules](https://github.com/appmetr/hercules)
+
+Browse releases on BinTray: [https://bintray.com/appmetr/maven/hercules](https://bintray.com/appmetr/maven/hercules)
 
 	
 
@@ -84,6 +85,7 @@ Create Hercules config:
 	HerculesConfig config = new HerculesConfig(
 	    "Test", 			// keyspace name
 	    "localhost:9160",	// cassandra host and port
+	    10,					// max active connections
 	    1,					// replication factor
 	    true,				// is schema modification enabled
 	    entityClasses
