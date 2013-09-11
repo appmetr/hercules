@@ -53,7 +53,6 @@ public class ThriftDataDriver implements DataDriver {
 
     @Override public void shutdownCluster(Cluster cluster) {
         HFactory.shutdownCluster(cluster);
-        cluster.getConnectionManager().shutdown();
     }
 
     @Override public Keyspace getOrCreateKeypace(String keyspaceName, int replicationFactor, Cluster cluster) {
