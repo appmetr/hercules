@@ -11,16 +11,10 @@
 
     <repositories>
         <repository>
-            <id>monblank-java</id>
-            <url>https://raw.github.com/appmetr/monblank-java/mvn-repo/</url>
+            <id>appmetr-repo</id>
+            <url>http://dl.bintray.com/appmetr/maven</url>
         </repository>
     </repositories>
-
-    <scm>
-        <connection>scm:git:ssh://git@github.com/appmetr/hercules.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/appmetr/hercules.git</developerConnection>
-        <url>http://github.com/appmetr/hercules</url>
-    </scm>
 
     <distributionManagement>
         <repository>
