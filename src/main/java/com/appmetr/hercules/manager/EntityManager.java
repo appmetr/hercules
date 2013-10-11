@@ -433,7 +433,18 @@ public class EntityManager {
                     foreignKey, new SliceDataSpecificator<K>(null, null, false, count));
 
             if (queryResult.hasResult()) {
-                return get(clazz, queryResult.getEntries().keySet(), dataOperationsProfile);
+                //filtering using real entity fk
+                List<E> candidates = get(clazz, queryResult.getEntries().keySet(), dataOperationsProfile);
+                List<E> entities = new ArrayList<E>(candidates.size());
+                for (E candidate : candidates) {
+                    ForeignKey candidateKey = getForeignKeyFromEntity(candidate, metadata, foreignKey.getClass());
+                    if (!foreignKey.equals(candidateKey)) {
+                        monitoring.inc(HerculesMonitoringGroup.HERCULES_EM, "Error: invalid FK");
+                        continue;
+                    }
+                    entities.add(candidate);
+                }
+                return entities;
             } else {
                 return new ArrayList<E>();
             }
