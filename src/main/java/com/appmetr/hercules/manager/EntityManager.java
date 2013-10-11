@@ -440,6 +440,8 @@ public class EntityManager {
                     ForeignKey candidateKey = getForeignKeyFromEntity(candidate, metadata, foreignKey.getClass());
                     if (!foreignKey.equals(candidateKey)) {
                         monitoring.inc(HerculesMonitoringGroup.HERCULES_EM, "Error: invalid FK");
+                        logger.error(HerculesMonitoringGroup.HERCULES_EM, String.format("Invalid FK: FK class %1$s, FK %2$s, entity class %3$s, PK %4$s",
+                                foreignKey.getClass().getSimpleName(), foreignKey, clazz.getSimpleName(), getPrimaryKey(candidate, metadata)));
                         continue;
                     }
                     entities.add(candidate);
