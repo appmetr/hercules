@@ -19,6 +19,7 @@ public abstract class TestHercules {
         classes.add(TestEntity.class);
 
         HerculesConfig config = new HerculesConfig(
+                "Test Cluster",
                 "Test",
                 "localhost:9160",
                 100,
