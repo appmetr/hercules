@@ -8,6 +8,7 @@ import java.util.Set;
 
 public class HerculesConfig {
     /* Constants */
+    private String clusterName;
     private String keyspaceName;
     private String cassandraHost;
     private int maxActiveConnections;
@@ -21,7 +22,8 @@ public class HerculesConfig {
     public HerculesConfig() {
     }
 
-    public HerculesConfig(String keyspaceName, String cassandraHost, int maxActiveConnections, int replicationFactor, Boolean schemaModificationEnabled, Set<Class> entityClasses) {
+    public HerculesConfig(String clusterName, String keyspaceName, String cassandraHost, int maxActiveConnections, int replicationFactor, Boolean schemaModificationEnabled, Set<Class> entityClasses) {
+        this.keyspaceName = clusterName;
         this.keyspaceName = keyspaceName;
         this.cassandraHost = cassandraHost;
         this.maxActiveConnections = maxActiveConnections;
@@ -41,6 +43,10 @@ public class HerculesConfig {
             }
         }
     }
+
+    public String getClusterName() { return clusterName; }
+
+    public void setClusterName(String clusterName) { this.clusterName = clusterName; }
 
     public String getKeyspaceName() {
         return keyspaceName;
@@ -74,9 +80,7 @@ public class HerculesConfig {
         this.replicationFactor = replicationFactor;
     }
 
-    public Boolean isSchemaModificationEnabled() {
-        return schemaModificationEnabled;
-    }
+    public Boolean isSchemaModificationEnabled() { return schemaModificationEnabled; }
 
     public void setSchemaModificationEnabled(Boolean schemaModificationEnabled) {
         this.schemaModificationEnabled = schemaModificationEnabled;

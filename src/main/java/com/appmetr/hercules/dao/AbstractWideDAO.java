@@ -72,20 +72,20 @@ public abstract class AbstractWideDAO<E, R, T> {
         return getHercules().getWideEntityManager().get(entityClass, rowKey, columns, dataOperationsProfile);
     }
 
-    public List<E> get(R rowKey, T from, T to) {
-        return get(rowKey, from, to, null);
+    public List<E> get(R rowKey, T start, T end) {
+        return get(rowKey, start, end, null);
     }
 
-    public List<E> get(R rowKey, T from, T to, DataOperationsProfile dataOperationsProfile) {
-        return getHercules().getWideEntityManager().get(entityClass, rowKey, from, to, dataOperationsProfile);
+    public List<E> get(R rowKey, T start, T end, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getWideEntityManager().get(entityClass, rowKey, start, end, dataOperationsProfile);
     }
 
-    public List<E> get(R rowKey, T from, T to, boolean reverse, Integer count) {
-        return get(rowKey, from, to, reverse, count, null);
+    public List<E> get(R rowKey, T start, T end, boolean reverse, Integer count) {
+        return get(rowKey, start, end, reverse, count, null);
     }
 
-    public List<E> get(R rowKey, T from, T to, boolean reverse, Integer count, DataOperationsProfile dataOperationsProfile) {
-        return getHercules().getWideEntityManager().get(entityClass, rowKey, from, to, reverse, count, dataOperationsProfile);
+    public List<E> get(R rowKey, T start, T end, boolean reverse, Integer count, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getWideEntityManager().get(entityClass, rowKey, start, end, reverse, count, dataOperationsProfile);
     }
 
     public List<E> get(R rowKey, SliceDataSpecificator<T> sliceDataSpecificator) {

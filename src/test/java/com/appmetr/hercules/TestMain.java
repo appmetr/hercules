@@ -23,6 +23,7 @@ public class TestMain {
         classes.add(TestWideEntity.class);
 
         HerculesConfig config = new HerculesConfig(
+                "Test Cluster",
                 "Test",
                 "localhost:9160",
                 100,

@@ -59,12 +59,12 @@ public class WideEntityManager {
         return get(clazz, rowKey, new SliceDataSpecificator<T>(columns), dataOperationsProfile);
     }
 
-    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, T from, T to, DataOperationsProfile dataOperationsProfile) {
-        return get(clazz, rowKey, new SliceDataSpecificator<T>(from, to, false, null), dataOperationsProfile);
+    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, T start, T end, DataOperationsProfile dataOperationsProfile) {
+        return get(clazz, rowKey, new SliceDataSpecificator<T>(start, end, false, null), dataOperationsProfile);
     }
 
-    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, T from, T to, boolean reverse, Integer count, DataOperationsProfile dataOperationsProfile) {
-        return get(clazz, rowKey, new SliceDataSpecificator<T>(from, to, reverse, count), dataOperationsProfile);
+    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, T start, T end, boolean reverse, Integer count, DataOperationsProfile dataOperationsProfile) {
+        return get(clazz, rowKey, new SliceDataSpecificator<T>(start, end, reverse, count), dataOperationsProfile);
     }
 
     public <E, R, T> List<E> get(Class<E> clazz, R rowKey, SliceDataSpecificator<T> sliceDataSpecificator, DataOperationsProfile dataOperationsProfile) {

@@ -44,18 +44,18 @@ public class ThriftDataDriver implements DataDriver {
     @Inject private Monitoring monitoring;
     @Inject private Hercules hercules;
 
-    @Override public Cluster getOrCreateCluster(String keyspaceName, String host, int maxActiveConnections) {
+    @Override public Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections) {
         CassandraHostConfigurator configurator = new CassandraHostConfigurator(host);
         configurator.setMaxActive(maxActiveConnections);
 
-        return HFactory.getOrCreateCluster(keyspaceName, configurator);
+        return HFactory.getOrCreateCluster(clusterName, configurator);
     }
 
     @Override public void shutdownCluster(Cluster cluster) {
         HFactory.shutdownCluster(cluster);
     }
 
-    @Override public Keyspace getOrCreateKeypace(String keyspaceName, int replicationFactor, Cluster cluster) {
+    @Override public Keyspace getOrCreateKeyspace(String keyspaceName, int replicationFactor, Cluster cluster) {
         KeyspaceDefinition keyspaceDef = cluster.describeKeyspace(keyspaceName);
         List<ColumnFamilyDefinition> cfDefs = new LinkedList<ColumnFamilyDefinition>();
         // If keyspace does not exist create it without CFs.
