@@ -6,7 +6,7 @@
     <groupId>com.appmetr</groupId>
     <artifactId>hercules</artifactId>
     <packaging>jar</packaging>
-    <version>0.4.6-SNAPSHOT</version>
+    <version>0.4.6</version>
     <name>Hercules</name>
 
     <repositories>
@@ -20,7 +20,7 @@
         <connection>scm:git:ssh://git@github.com/appmetr/hercules.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/appmetr/hercules.git</developerConnection>
         <url>http://github.com/appmetr/hercules</url>
-      <tag>HEAD</tag>
+      <tag>hercules-0.4.6</tag>
   </scm>
 
     <distributionManagement>
