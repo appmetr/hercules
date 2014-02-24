@@ -168,12 +168,24 @@ public abstract class AbstractWideDAO<E, R, T> {
         return processRange(rowKey, null, null, Hercules.DEFAULT_BATCH_SIZE, processor);
     }
 
+    public int processAll(R rowKey, DataOperationsProfile dataOperationsProfile, BatchProcessor<E> processor) {
+        return processRange(rowKey, null, null, Hercules.DEFAULT_BATCH_SIZE, dataOperationsProfile, processor);
+    }
+
     public int processAll(R rowKey, int batchSize, BatchProcessor<E> processor) {
         return processRange(rowKey, null, null, batchSize, processor);
     }
 
+    public int processAll(R rowKey, int batchSize, DataOperationsProfile dataOperationsProfile, BatchProcessor<E> processor) {
+        return processRange(rowKey, null, null, batchSize, dataOperationsProfile, processor);
+    }
+
     public int processRange(R rowKey, T from, T to, int batchSize, BatchProcessor<E> processor) {
         return new BatchExecutor<E, T>(new WideDAOBatchIterator<E, R, T>(this, rowKey, from, to, batchSize), processor).execute();
+    }
+
+    public int processRange(R rowKey, T from, T to, int batchSize, DataOperationsProfile dataOperationsProfile, BatchProcessor<E> processor) {
+        return new BatchExecutor<E, T>(new WideDAOBatchIterator<E, R, T>(this, rowKey, from, to, batchSize), processor).execute(dataOperationsProfile);
     }
 
     public List<R> getKeyRange(R from, R to, int batchSize) {
