@@ -8,6 +8,6 @@ public class DataOperationsProfile {
     public long dbQueries;
 
     @Override public String toString() {
-        return String.format("Load: %1$s count, %2$s bytes, %3$s ms; %4$s Q\n", count, bytes, ms, dbQueries);
+        return String.format("%1$s count, %2$s bytes, %3$s ms; %4$s Q", count, bytes, ms, dbQueries);
     }
 }
