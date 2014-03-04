@@ -497,22 +497,31 @@ public class EntityManager {
                     for (Map.Entry<Field, String> entry : metadata.getFieldToColumn().entrySet()) {
                         String column = entry.getValue();
 
-                        if (!processedColumns.contains(column)) {
-                            Object columnValue = values.get(column);
-                            Object entityDefaultValue = entry.getKey().get(entity);
+                        if (processedColumns.contains(column)) {
+                            continue;
+                        }
 
-                            if (columnValue == null && metadata.isNotNullColumn(column)) {
-                                if (entityDefaultValue == null) {
-                                    throw new RuntimeException("Default value empty for entity class " +
-                                            metadata.getEntityClass().getSimpleName() + " field " + column);
-                                }
+                        if (!values.containsKey(column) && metadata.getColumnClass(column).isPrimitive()) {
+                            // we can not write null to primitive column type, so leave it with
+                            // initial value
+                            processedColumns.add(column);
+                            continue;
+                        }
 
-                                columnValue = entityDefaultValue;
+                        Object columnValue = values.get(column);
+                        Object entityDefaultValue = entry.getKey().get(entity);
+
+                        if (columnValue == null && metadata.isNotNullColumn(column)) {
+                            if (entityDefaultValue == null) {
+                                throw new RuntimeException("Default value empty for entity class " +
+                                        metadata.getEntityClass().getSimpleName() + " field " + column);
                             }
 
-                            entry.getKey().set(entity, columnValue);
-                            processedColumns.add(column);
+                            columnValue = entityDefaultValue;
                         }
+
+                        entry.getKey().set(entity, columnValue);
+                        processedColumns.add(column);
                     }
                 } catch (IllegalAccessException e) {
                     throwConvertError(clazz, values, e);
