@@ -7,7 +7,7 @@
     <groupId>com.appmetr</groupId>
     <artifactId>hercules</artifactId>
     <packaging>jar</packaging>
-    <version>0.4.11-SNAPSHOT</version>
+    <version>0.4.11</version>
     <name>Hercules</name>
 
     <repositories>
@@ -63,7 +63,7 @@
         <dependency>
             <groupId>com.appmetr</groupId>
             <artifactId>monblank-java</artifactId>
-            <version>0.3.0</version>
+            <version>0.3.1</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
