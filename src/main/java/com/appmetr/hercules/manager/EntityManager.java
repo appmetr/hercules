@@ -22,7 +22,6 @@ import com.appmetr.hercules.wide.SliceDataSpecificator;
 import com.appmetr.monblank.Monitoring;
 import com.appmetr.monblank.StopWatch;
 import com.google.inject.Inject;
-import com.sun.istack.internal.Nullable;
 import me.prettyprint.cassandra.serializers.BytesArraySerializer;
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.hector.api.Serializer;
@@ -54,7 +53,7 @@ public class EntityManager {
         return (K) getPrimaryKey(entity, getMetadata(entity.getClass()));
     }
 
-    public <E, K> Serializer<K> getPKSerializer(Class<E> clazz, @Nullable DataOperationsProfile dataOperationsProfile) {
+    public <E, K> Serializer<K> getPKSerializer(Class<E> clazz, DataOperationsProfile dataOperationsProfile) {
         return getPrimaryKeySerializer(getMetadata(clazz), dataOperationsProfile);
     }
 
@@ -303,7 +302,7 @@ public class EntityManager {
         }
     }
 
-    <K> Serializer<K> getPrimaryKeySerializer(EntityMetadata metadata, @Nullable DataOperationsProfile dataOperationsProfile) {
+    <K> Serializer<K> getPrimaryKeySerializer(EntityMetadata metadata, DataOperationsProfile dataOperationsProfile) {
         Class keyClass = metadata.getPrimaryKeyMetadata().getKeyClass();
         Class keySerializer = metadata.getPrimaryKeyMetadata().getSerializer();
 
@@ -314,7 +313,7 @@ public class EntityManager {
         return new InformerSerializer<K>(serializer, dataOperationsProfile);
     }
 
-    <K> Serializer<K> getForeignKeySerializer(ForeignKeyMetadata metadata, @Nullable DataOperationsProfile dataOperationsProfile) {
+    <K> Serializer<K> getForeignKeySerializer(ForeignKeyMetadata metadata, DataOperationsProfile dataOperationsProfile) {
         return new InformerSerializer<K>(serializerProvider.<K>getSerializer(metadata.getSerializer(), metadata.getKeyClass()), dataOperationsProfile);
     }
 
