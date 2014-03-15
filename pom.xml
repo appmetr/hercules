@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
@@ -20,8 +21,8 @@
         <connection>scm:git:ssh://git@github.com/appmetr/hercules.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/appmetr/hercules.git</developerConnection>
         <url>http://github.com/appmetr/hercules</url>
-      <tag>HEAD</tag>
-  </scm>
+        <tag>HEAD</tag>
+    </scm>
 
     <distributionManagement>
         <repository>
@@ -62,7 +63,7 @@
         <dependency>
             <groupId>com.appmetr</groupId>
             <artifactId>monblank-java</artifactId>
-            <version>0.2.1</version>
+            <version>0.3.0</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -133,7 +134,7 @@
                 <artifactId>maven-resources-plugin</artifactId>
                 <configuration>
                     <encoding>UTF-8</encoding>
-                    <outputDirectory />
+                    <outputDirectory/>
                 </configuration>
             </plugin>
             <plugin>
