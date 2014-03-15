@@ -7,7 +7,7 @@
     <groupId>com.appmetr</groupId>
     <artifactId>hercules</artifactId>
     <packaging>jar</packaging>
-    <version>0.4.11</version>
+    <version>0.4.11-SNAPSHOT</version>
     <name>Hercules</name>
 
     <repositories>
