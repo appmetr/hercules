@@ -68,6 +68,8 @@ public class EntityManager {
             HerculesQueryResult<String> queryResult = dataDriver.getRow(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile, getRowSerializerForEntity(metadata, dataOperationsProfile), primaryKey);
 
             if (queryResult.hasResult()) {
+                countEntities(dataOperationsProfile, queryResult.getEntries());
+
                 return convertToEntity(clazz, primaryKey, queryResult.getEntries());
             } else {
                 return null;
@@ -91,6 +93,8 @@ public class EntityManager {
                     this.<K>getRowSerializerForEntity(metadata, dataOperationsProfile), primaryKeys);
 
             if (queryResult.hasResult()) {
+                countEntities(dataOperationsProfile, queryResult.getEntries());
+
                 return convertToEntityList(clazz, queryResult.getEntries());
             } else {
                 return new ArrayList<E>();
@@ -130,6 +134,8 @@ public class EntityManager {
                     this.<K>getRowSerializerForEntity(metadata, dataOperationsProfile), from, to, count, new SliceDataSpecificator<String>(null, null, false, null));
 
             if (queryResult.hasResult()) {
+                countEntities(dataOperationsProfile, queryResult.getEntries());
+
                 return new Tuple2<List<E>, K>(convertToEntityList(clazz, queryResult.getEntries()), queryResult.getLastKey());
             } else {
                 return new Tuple2<List<E>, K>(new ArrayList<E>(), queryResult.getLastKey());
@@ -233,6 +239,8 @@ public class EntityManager {
                 HerculesQueryResult<String> queryResult = dataDriver.getRow(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile, getRowSerializerForEntity(metadata, dataOperationsProfile), primaryKey);
 
                 if (queryResult.hasResult()) {
+                    countEntities(dataOperationsProfile, queryResult.getEntries());
+
                     oldEntity = (E) this.<E, K>convertToEntity(metadata.getEntityClass(), primaryKey, queryResult.getEntries());
                 }
             }
@@ -372,6 +380,8 @@ public class EntityManager {
 
             List<E> entities = new ArrayList<E>();
             if (result.hasResult()) {
+                countEntities(dataOperationsProfile, result.getEntries());
+
                 for (K primaryKey : result.getEntries().keySet()) {
                     entities.add(convertToEntity(clazz, primaryKey, result.getEntries().get(primaryKey)));
                 }
@@ -400,14 +410,17 @@ public class EntityManager {
                     new ByteArrayRowSerializer<String, K>(StringSerializer.get(), this.<K>getPrimaryKeySerializer(metadata, dataOperationsProfile)),
                     metadata.getColumnFamily());
 
-            Set<K> indexes = queryResult.getEntries().keySet();
-
             List<E> entities = new ArrayList<E>();
-            if (indexes.size() > 0) {
-                HerculesMultiQueryResult<K, String> entitiesQueryResult = dataDriver.getRows(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile,
-                        this.<K>getRowSerializerForEntity(metadata, dataOperationsProfile), indexes);
+            if (queryResult.hasResult()) {
+                countEntities(dataOperationsProfile, queryResult.getEntries());
 
-                if (queryResult.hasResult()) {
+                Set<K> indexes = queryResult.getEntries().keySet();
+                if (indexes.size() > 0) {
+                    HerculesMultiQueryResult<K, String> entitiesQueryResult = dataDriver.getRows(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile,
+                            this.<K>getRowSerializerForEntity(metadata, dataOperationsProfile), indexes);
+
+                    countEntities(dataOperationsProfile, entitiesQueryResult.getEntries());
+
                     for (Map.Entry<K, LinkedHashMap<String, Object>> entry : entitiesQueryResult.getEntries().entrySet()) {
                         entities.add(convertToEntity(clazz, entry.getKey(), entry.getValue()));
                     }
@@ -436,6 +449,8 @@ public class EntityManager {
                     foreignKey, new SliceDataSpecificator<K>(null, null, false, count));
 
             if (queryResult.hasResult()) {
+                countEntities(dataOperationsProfile, queryResult.getEntries());
+
                 //filtering using real entity fk
                 List<E> candidates = get(clazz, queryResult.getEntries().keySet(), dataOperationsProfile);
                 List<E> entities = new ArrayList<E>(candidates.size());
@@ -634,5 +649,11 @@ public class EntityManager {
         columnSerializers.put(METADATA_COLUMN_NAME, BytesArraySerializer.get());
 
         return new ColumnRowSerializer<K, String>(this.<K>getPrimaryKeySerializer(metadata, dataOperationsProfile), StringSerializer.get(), columnSerializers);
+    }
+
+    private void countEntities(DataOperationsProfile dataOperationsProfile, LinkedHashMap entries){
+        if(dataOperationsProfile != null) {
+            dataOperationsProfile.count += entries.size();
+        }
     }
 }

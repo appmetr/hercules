@@ -27,7 +27,6 @@ import me.prettyprint.hector.api.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.*;
 
@@ -139,6 +138,7 @@ public class WideEntityManager {
                 entities.add(entity);
             }
 
+            countEntities(dataOperationsProfile, entities);
 
             return entities;
         } catch (IllegalAccessException e) {
@@ -448,7 +448,7 @@ public class WideEntityManager {
                             }
                         }
 
-
+                        countEntities(dataOperationsProfile, resultObjects);
                         result = new OperationsResult(resultObjects);
                         break;
                     default:
@@ -508,5 +508,11 @@ public class WideEntityManager {
 
     private <R, T> String getCFName(WideEntityMetadata metadata, R rowKey, T topKey) {
         return metadata.getColumnFamily() + getPartitionProvider(metadata).getPartition(rowKey, topKey);
+    }
+
+    private void countEntities(DataOperationsProfile dataOperationsProfile, Collection entries){
+        if(dataOperationsProfile != null) {
+            dataOperationsProfile.count += entries.size();
+        }
     }
 }

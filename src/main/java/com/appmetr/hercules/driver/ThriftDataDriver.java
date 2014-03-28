@@ -469,7 +469,6 @@ public class ThriftDataDriver implements DataDriver {
 
         if (dataOperationsProfile != null) {
             dataOperationsProfile.bytes += bytes;
-            dataOperationsProfile.count += result.size();
         }
 
         return result.size() > 0 ? new HerculesMultiQueryResult<R, T>(result, lastKey) : new HerculesMultiQueryResult<R, T>(lastKey);
