@@ -28,7 +28,7 @@ public class InformerSerializer<T> implements Serializer<T> {
         long time = stopWatch.stop();
 
         if (dataOperationsProfile != null) {
-            dataOperationsProfile.bytes += byteBuffer.capacity();
+            dataOperationsProfile.bytes += byteBuffer.remaining();
             dataOperationsProfile.serializationMs += time;
         }
 
@@ -39,11 +39,13 @@ public class InformerSerializer<T> implements Serializer<T> {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
 
+        long bytes = byteBuffer.remaining();
+
         T obj = serializer.fromByteBuffer(byteBuffer);
         long time = stopWatch.stop();
 
         if (dataOperationsProfile != null) {
-            dataOperationsProfile.bytes += byteBuffer.capacity();
+            dataOperationsProfile.bytes += bytes;
             dataOperationsProfile.deserializationMs += time;
         }
         return obj;

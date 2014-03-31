@@ -5,6 +5,7 @@ import com.appmetr.hercules.HerculesMonitoringGroup;
 import com.appmetr.hercules.driver.serializer.RowSerializer;
 import com.appmetr.hercules.profile.DataOperationsProfile;
 import com.appmetr.hercules.serializers.EnumSerializer;
+import com.appmetr.hercules.serializers.InformerSerializer;
 import com.appmetr.hercules.wide.SliceDataSpecificator;
 import com.appmetr.monblank.Monitoring;
 import com.appmetr.monblank.StopWatch;
@@ -444,7 +445,6 @@ public class ThriftDataDriver implements DataDriver {
 
         LinkedHashMap<R, LinkedHashMap<T, Object>> result = new LinkedHashMap<R, LinkedHashMap<T, Object>>();
 
-        long bytes = 0;
         R lastKey = null;
         for (Row<R, T, ByteBuffer> row : rows) {
             lastKey = row.getKey();
@@ -457,18 +457,12 @@ public class ThriftDataDriver implements DataDriver {
                 for (HColumn<T, ByteBuffer> column : columns) {
                     if (!rowSerializer.hasValueSerializer(column.getName())) continue;
 
-                    bytes += column.getValue().remaining();
-
-                    Serializer serializer = rowSerializer.getValueSerializer(column.getName());
+                    Serializer serializer = new InformerSerializer(rowSerializer.getValueSerializer(column.getName()), dataOperationsProfile);
                     valueMap.put(column.getName(), serializer.fromByteBuffer(column.getValue()));
                 }
 
                 result.put(row.getKey(), valueMap);
             }
-        }
-
-        if (dataOperationsProfile != null) {
-            dataOperationsProfile.bytes += bytes;
         }
 
         return result.size() > 0 ? new HerculesMultiQueryResult<R, T>(result, lastKey) : new HerculesMultiQueryResult<R, T>(lastKey);
