@@ -42,15 +42,15 @@ public class IndexManager {
         EntityMetadata metadata = entityManager.getMetadata(entity.getClass());
 
         K primaryKey = entityManager.getPrimaryKey(entity, metadata);
-        Serializer<K> primaryKeySerializer = entityManager.getPrimaryKeySerializer(metadata, dataOperationsProfile);
+        Serializer<K> primaryKeySerializer = entityManager.getPrimaryKeySerializer(metadata);
 
         //create primary key index
         if (metadata.isCreatePrimaryKeyIndex()) {
-            insertRowIndex(EntityManager.PRIMARY_KEY_CF_NAME, metadata.getColumnFamily(), StringSerializer.get(), primaryKey, entityManager.getPrimaryKeySerializer(metadata, dataOperationsProfile), dataOperationsProfile);
+            insertRowIndex(EntityManager.PRIMARY_KEY_CF_NAME, metadata.getColumnFamily(), StringSerializer.get(), primaryKey, entityManager.getPrimaryKeySerializer(metadata), dataOperationsProfile);
         }
 
         for (ForeignKeyMetadata foreignKeyMetadata : metadata.getIndexes().values()) {
-            Serializer foreignKeySerializer = entityManager.getForeignKeySerializer(foreignKeyMetadata, dataOperationsProfile);
+            Serializer foreignKeySerializer = entityManager.getForeignKeySerializer(foreignKeyMetadata);
             Object foreignKey = entityManager.getForeignKeyFromEntity(entity, metadata, foreignKeyMetadata.getKeyClass());
 
             Object oldIndexKey = oldEntity == null ? null : entityManager.getForeignKeyFromEntity(oldEntity, metadata, foreignKeyMetadata.getKeyClass());
@@ -81,7 +81,7 @@ public class IndexManager {
         EntityMetadata metadata = entityManager.getMetadata(entity.getClass());
 
         K primaryKey = entityManager.getPrimaryKey(entity, metadata);
-        Serializer<K> primaryKeySerializer = entityManager.getPrimaryKeySerializer(metadata, dataOperationsProfile);
+        Serializer<K> primaryKeySerializer = entityManager.getPrimaryKeySerializer(metadata);
 
         for (ForeignKeyMetadata index : metadata.getIndexes().values()) {
             List<K> indexedId = new ArrayList<K>(1);
@@ -92,7 +92,7 @@ public class IndexManager {
                 continue;
             }
 
-            deleteRowIndexes(index.getColumnFamily(), indexKey, entityManager.getForeignKeySerializer(index, dataOperationsProfile), indexedId, primaryKeySerializer, dataOperationsProfile);
+            deleteRowIndexes(index.getColumnFamily(), indexKey, entityManager.getForeignKeySerializer(index), indexedId, primaryKeySerializer, dataOperationsProfile);
         }
 
         //redundant check. Only for reducing number of cassandra operations
@@ -109,7 +109,7 @@ public class IndexManager {
         logger.debug("Checking PK index table for CF: " + cfName);
 
         HerculesMultiQueryResult result = dataDriver.getSlice(hercules.getKeyspace(), EntityManager.PRIMARY_KEY_CF_NAME, null,
-                new ByteArrayRowSerializer<String, Object>(StringSerializer.get(), entityManager.getPrimaryKeySerializer(metadata, null)), Arrays.asList(cfName),
+                new ByteArrayRowSerializer<String, Object>(StringSerializer.get(), entityManager.getPrimaryKeySerializer(metadata)), Arrays.asList(cfName),
                 new SliceDataSpecificator<Object>(null, null, false, 1));
         /*
             We convert all row keys into column values of IndexTables with following structure:
@@ -135,7 +135,7 @@ public class IndexManager {
             ).execute();
 
             dataDriver.insert(hercules.getKeyspace(), EntityManager.PRIMARY_KEY_CF_NAME, null,
-                    new ByteArrayRowSerializer<String, Object>(StringSerializer.get(), entityManager.getPrimaryKeySerializer(metadata, null)),
+                    new ByteArrayRowSerializer<String, Object>(StringSerializer.get(), entityManager.getPrimaryKeySerializer(metadata)),
                     cfName, valuesToInsert);
         }
         logger.debug("PK index created for CF: " + cfName);
@@ -156,8 +156,8 @@ public class IndexManager {
         final int[] rowsInserted = new int[1];
         final int[] rowsSkipped = new int[1];
 
-        final Serializer primaryKeySerializer = entityManager.getPrimaryKeySerializer(metadata, null);
-        final Serializer foreignKeySerializer = entityManager.getForeignKeySerializer(keyMetadata, null);
+        final Serializer primaryKeySerializer = entityManager.getPrimaryKeySerializer(metadata);
+        final Serializer foreignKeySerializer = entityManager.getForeignKeySerializer(keyMetadata);
 
         new BatchExecutor<Object, Object>(
                 getEntityClassBatchIterator(metadata.getEntityClass()),
