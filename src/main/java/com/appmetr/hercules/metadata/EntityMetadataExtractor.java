@@ -5,6 +5,7 @@ import com.appmetr.hercules.keys.ForeignKey;
 import com.appmetr.hercules.serializers.AbstractHerculesSerializer;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 
 /**
  * Clients of this class should call only extract() method.
@@ -78,7 +79,10 @@ public class EntityMetadataExtractor {
 
     private void parseFieldLevelMetadata(Class<?> clazz, EntityMetadata metadata) {
         for (Field field : clazz.getDeclaredFields()) {
+
             if (field.isAnnotationPresent(Transient.class)) continue;
+            if (Modifier.isStatic(field.getModifiers())) continue;
+
             field.setAccessible(true);
 
             //primary key
