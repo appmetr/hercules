@@ -588,7 +588,7 @@ public class EntityManager {
 
             Class<? extends AbstractHerculesSerializer> entitySerializerClass = metadata.getEntitySerializer();
             if (entitySerializerClass != null) {
-                if (fieldFilter == null) {
+                if (fieldFilter != null) {
                     throw new RuntimeException(MessageFormat.format("Selective save doesn't support for entity {0} with serializers", entity.getClass().getSimpleName()));
                 }
                 values.put(SERIALIZED_ENTITY_TOP_KEY, entity);
