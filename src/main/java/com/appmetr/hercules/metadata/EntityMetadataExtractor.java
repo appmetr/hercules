@@ -37,6 +37,7 @@ public class EntityMetadataExtractor {
 
         MetadataExtractorUtils.setEntityComparatorType(clazz, metadata, entityAnnotation.comparatorType());
         MetadataExtractorUtils.setEntitySerializer(clazz, metadata);
+        MetadataExtractorUtils.setEntityTTL(clazz, metadata);
         metadata.setListenerMetadata(MetadataExtractorUtils.getListenerMetadata(clazz));
 
         //Parse primary key metadata

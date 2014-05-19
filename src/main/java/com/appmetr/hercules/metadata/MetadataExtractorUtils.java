@@ -1,6 +1,7 @@
 package com.appmetr.hercules.metadata;
 
 import com.appmetr.hercules.annotations.Serializer;
+import com.appmetr.hercules.annotations.TimeToLive;
 import com.appmetr.hercules.annotations.comparator.EntityComparatorType;
 import com.appmetr.hercules.annotations.listeners.*;
 import me.prettyprint.hector.api.ddl.ComparatorType;
@@ -54,6 +55,13 @@ public class MetadataExtractorUtils {
         if (clazz.isAnnotationPresent(Serializer.class)) {
             Serializer serializerAnnotation = clazz.getAnnotation(Serializer.class);
             metadata.setEntitySerializer(serializerAnnotation.value());
+        }
+    }
+
+    public static void setEntityTTL(Class<?> clazz, AbstractMetadata metadata) {
+        if (clazz.isAnnotationPresent(TimeToLive.class)) {
+            TimeToLive ttlAnnotation = clazz.getAnnotation(TimeToLive.class);
+            metadata.setEntityTTL(ttlAnnotation.value());
         }
     }
 

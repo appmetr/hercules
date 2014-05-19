@@ -312,7 +312,7 @@ public class ThriftDataDriver implements DataDriver {
     }
 
     @Override
-    public <R, T> void insert(Keyspace keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R rowKey, T topKey, Object value) {
+    public <R, T> void insert(Keyspace keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R rowKey, T topKey, Object value, int ttl) {
         Serializer<R> rowKeySerializer = rowSerializer.getRowKeySerializer();
 
         ByteBuffer serializedRowKey = rowKeySerializer.toByteBuffer(rowKey);
@@ -333,7 +333,13 @@ public class ThriftDataDriver implements DataDriver {
                 ByteBuffer serializedValue = serializer.toByteBuffer(value);
                 serializedDataSize += serializedValue.remaining();
 
-                mutator.insert(serializedRowKey, columnFamily, HFactory.createColumn(topKey, serializedValue, rowSerializer.getTopKeySerializer(), ByteBufferSerializer.get()));
+                HColumn<T, ByteBuffer> column;
+                if (ttl > 0) {
+                    column = HFactory.createColumn(topKey, serializedValue, ttl, rowSerializer.getTopKeySerializer(), ByteBufferSerializer.get());
+                } else {
+                    column = HFactory.createColumn(topKey, serializedValue, rowSerializer.getTopKeySerializer(), ByteBufferSerializer.get());
+                }
+                mutator.insert(serializedRowKey, columnFamily, column);
             }
         } finally {
             long time = monitor.stop();
@@ -346,15 +352,57 @@ public class ThriftDataDriver implements DataDriver {
     }
 
     @Override
-    public <R, T> void insert(Keyspace keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R rowKey, Map<T, Object> values) {
+    public <R, T> void insert(Keyspace keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R rowKey, Map<T, Object> values, final Map<T, Integer> ttls) {
         Map<R, Map<T, Object>> valuesToInsert = new HashMap<R, Map<T, Object>>();
         valuesToInsert.put(rowKey, values);
 
-        insert(keyspace, columnFamily, dataOperationsProfile, rowSerializer, valuesToInsert);
+        insert(keyspace, columnFamily, dataOperationsProfile, rowSerializer, valuesToInsert, new TtlProvider<R, T>() {
+            @Override public int get(R row, T top) {
+                if (ttls == null) {
+                    return DataDriver.EMPTY_TTL;
+                }
+                Integer ttl = ttls.get(top);
+                if (ttl == null) {
+                    return DataDriver.EMPTY_TTL;
+                }
+                return ttl;
+            }
+        });
     }
 
     @Override
-    public <R, T> void insert(Keyspace keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, Map<R, Map<T, Object>> values) {
+    public <R, T> void insert(Keyspace keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R rowKey, Map<T, Object> values, final int ttl) {
+        Map<R, Map<T, Object>> valuesToInsert = new HashMap<R, Map<T, Object>>();
+        valuesToInsert.put(rowKey, values);
+
+        insert(keyspace, columnFamily, dataOperationsProfile, rowSerializer, valuesToInsert, new TtlProvider<R, T>() {
+            @Override public int get(R row, T top) {
+                return ttl;
+            }
+        });
+    }
+
+    @Override
+    public <R, T> void insert(Keyspace keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, Map<R, Map<T, Object>> values, final Map<R, Map<T, Integer>> ttls) {
+        insert(keyspace, columnFamily, dataOperationsProfile, rowSerializer, values, new TtlProvider<R, T>() {
+            @Override public int get(R row, T top) {
+                if (ttls == null) {
+                    return DataDriver.EMPTY_TTL;
+                }
+                Map<T, Integer> rowTtl = ttls.get(row);
+                if (rowTtl == null) {
+                    return DataDriver.EMPTY_TTL;
+                }
+                Integer ttl = rowTtl.get(top);
+                if (ttl == null) {
+                    return DataDriver.EMPTY_TTL;
+                }
+                return ttl;
+            }
+        });
+    }
+
+    private <R, T> void insert(Keyspace keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, Map<R, Map<T, Object>> values, TtlProvider<R, T> ttlProvider) {
         Serializer<R> rowKeySerializer = rowSerializer.getRowKeySerializer();
 
         Mutator<ByteBuffer> mutator = HFactory.createMutator(keyspace, ByteBufferSerializer.get());
@@ -378,14 +426,26 @@ public class ThriftDataDriver implements DataDriver {
                     ByteBuffer serializedValue = serializer.toByteBuffer(value);
                     serializedDataSize += serializedValue.remaining();
 
-                    HColumn column = HFactory.createColumn(topKey, serializedValue, rowSerializer.getTopKeySerializer(), ByteBufferSerializer.get());
+                    int ttl = DataDriver.EMPTY_TTL;
+                    if (ttlProvider != null) {
+                        ttl = ttlProvider.get(rowKey, topKey);
+                    }
+                    HColumn column;
+                    if (ttl > 0) {
+                        column = HFactory.createColumn(topKey, serializedValue, ttl, rowSerializer.getTopKeySerializer(), ByteBufferSerializer.get());
+                    } else {
+                        column = HFactory.createColumn(topKey, serializedValue, rowSerializer.getTopKeySerializer(), ByteBufferSerializer.get());
+                    }
                     mutator.addInsertion(serializedRowKey, columnFamily, column);
                 }
             }
         }
 
-        StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Insert " + columnFamily);
+        executeMutator(columnFamily, dataOperationsProfile, mutator, serializedDataSize);
+    }
 
+    private void executeMutator(String columnFamily, DataOperationsProfile dataOperationsProfile, Mutator<ByteBuffer> mutator, int serializedDataSize) {
+        StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Insert " + columnFamily);
         try {
             mutator.execute();
         } finally {
@@ -474,5 +534,9 @@ public class ThriftDataDriver implements DataDriver {
 
     private int getBoundedTopCount(Integer topCount) {
         return topCount == null || topCount > MAX_TOP_COUNT ? MAX_TOP_COUNT : topCount;
+    }
+
+    private static interface TtlProvider<R, T> {
+        int get(R row, T top);
     }
 }

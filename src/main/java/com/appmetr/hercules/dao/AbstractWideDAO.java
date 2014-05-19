@@ -104,24 +104,48 @@ public abstract class AbstractWideDAO<E, R, T> {
         save(rowKey, entity, null);
     }
 
+    public void save(R rowKey, E entity, int ttl) {
+        save(rowKey, entity, ttl, null);
+    }
+
     public void save(R rowKey, E entity, DataOperationsProfile dataOperationsProfile) {
         save(rowKey, getTopKey(entity), entity, dataOperationsProfile);
+    }
+
+    public void save(R rowKey, E entity, int ttl, DataOperationsProfile dataOperationsProfile) {
+        save(rowKey, getTopKey(entity), entity, ttl, dataOperationsProfile);
     }
 
     public void save(R rowKey, Iterable<E> entities) {
         save(rowKey, entities, null);
     }
 
+    public void save(R rowKey, Iterable<E> entities, int ttl) {
+        save(rowKey, entities, ttl, null);
+    }
+
     public void save(R rowKey, Iterable<E> entities, DataOperationsProfile dataOperationsProfile) {
         getHercules().getWideEntityManager().save(entityClass, rowKey, entities, dataOperationsProfile);
+    }
+
+    public void save(R rowKey, Iterable<E> entities, int ttl, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getWideEntityManager().save(entityClass, rowKey, entities, ttl, dataOperationsProfile);
     }
 
     public void save(R rowKey, T topKey, E value) {
         save(rowKey, topKey, value, null);
     }
 
+    public void save(R rowKey, T topKey, E value, int ttl) {
+        save(rowKey, topKey, value, ttl, null);
+    }
+
     public void save(R rowKey, T topKey, E value, DataOperationsProfile dataOperationsProfile) {
         getHercules().getWideEntityManager().save(rowKey, topKey, value, dataOperationsProfile);
+    }
+
+    public void save(R rowKey, T topKey, E value, int ttl, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getWideEntityManager().save(rowKey, topKey, value, ttl, dataOperationsProfile);
     }
 
     public void delete(R rowKey) {
@@ -240,6 +264,22 @@ public abstract class AbstractWideDAO<E, R, T> {
         OperationsCollector<SaveExecutableOperation> collector = getHercules().getInjector().getInstance(Key.get(new TypeLiteral<OperationsCollector<SaveExecutableOperation>>() {
         }));
         collector.add(new SaveExecutableOperation<E, R, T>(entityClass, rowKey, Arrays.asList(entity)));
+
+        return collector;
+    }
+
+    public OperationsCollector<SaveExecutableOperation> saveOperationFor(R rowKey, List<E> entities, int ttl) {
+        OperationsCollector<SaveExecutableOperation> collector = getHercules().getInjector().getInstance(Key.get(new TypeLiteral<OperationsCollector<SaveExecutableOperation>>() {
+        }));
+        collector.add(new SaveExecutableOperation<E, R, T>(entityClass, rowKey, entities, ttl));
+
+        return collector;
+    }
+
+    public OperationsCollector<SaveExecutableOperation> saveOperationFor(R rowKey, E entity, int ttl) {
+        OperationsCollector<SaveExecutableOperation> collector = getHercules().getInjector().getInstance(Key.get(new TypeLiteral<OperationsCollector<SaveExecutableOperation>>() {
+        }));
+        collector.add(new SaveExecutableOperation<E, R, T>(entityClass, rowKey, Arrays.asList(entity), ttl));
 
         return collector;
     }

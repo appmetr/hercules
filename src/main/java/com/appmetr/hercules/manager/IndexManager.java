@@ -136,7 +136,7 @@ public class IndexManager {
 
             dataDriver.insert(hercules.getKeyspace(), EntityManager.PRIMARY_KEY_CF_NAME, null,
                     new ByteArrayRowSerializer<String, Object>(StringSerializer.get(), entityManager.getPrimaryKeySerializer(metadata)),
-                    cfName, valuesToInsert);
+                    cfName, valuesToInsert, null);
         }
         logger.debug("PK index created for CF: " + cfName);
     }
@@ -189,7 +189,7 @@ public class IndexManager {
     private <K, T> void insertRowIndex(String columnFamily, K indexRowKey, Serializer<K> indexRowKeySerializer, T indexValue, Serializer<T> indexValueSerializer, DataOperationsProfile dataOperationsProfile) {
         dataDriver.insert(hercules.getKeyspace(), columnFamily, dataOperationsProfile,
                 new ByteArrayRowSerializer<K, T>(indexRowKeySerializer, indexValueSerializer),
-                indexRowKey, indexValue, new byte[0]);
+                indexRowKey, indexValue, new byte[0], DataDriver.EMPTY_TTL);
     }
 
     private <K, T> void deleteRowIndexes(String columnFamily, K indexRowKey, Serializer<K> indexRowKeySerializer, List<T> columns, Serializer<T> columnSerializer, DataOperationsProfile dataOperationsProfile) {
@@ -200,7 +200,8 @@ public class IndexManager {
 
     private BatchIterator<Object, Object> getEntityClassBatchIterator(final Class clazz) {
         return new TupleBatchIterator<Object, Object>(null, null) {
-            @Override protected Tuple2 getRangeTuple(Object from, Object to, int batchSize, DataOperationsProfile dataOperationsProfile) {
+            @Override
+            protected Tuple2 getRangeTuple(Object from, Object to, int batchSize, DataOperationsProfile dataOperationsProfile) {
                 return entityManager.getRange(clazz, from, to, batchSize, dataOperationsProfile);
             }
 

@@ -193,14 +193,29 @@ public class EntityManager {
         }
     }
 
+    public <E> void save(E entity, int ttl, DataOperationsProfile dataOperationsProfile) {
+        EntityMetadata metadata = getMetadata(entity.getClass());
+        Object primaryKey = getPrimaryKey(entity, metadata);
+
+        save(primaryKey, entity, null, ttl, dataOperationsProfile);
+    }
+
     public <E> void save(E entity, FieldFilter fieldFilter, DataOperationsProfile dataOperationsProfile) {
         EntityMetadata metadata = getMetadata(entity.getClass());
         Object primaryKey = getPrimaryKey(entity, metadata);
 
-        save(primaryKey, entity, fieldFilter, dataOperationsProfile);
+        save(primaryKey, entity, fieldFilter, null, dataOperationsProfile);
+    }
+
+    public <E, K> void save(K primaryKey, E entity, int ttl, DataOperationsProfile dataOperationsProfile) {
+        save(primaryKey, entity, null, ttl, dataOperationsProfile);
     }
 
     public <E, K> void save(K primaryKey, E entity, FieldFilter fieldFilter, DataOperationsProfile dataOperationsProfile) {
+        save(primaryKey, entity, fieldFilter, null, dataOperationsProfile);
+    }
+
+    private <E, K> void save(K primaryKey, E entity, FieldFilter fieldFilter, Integer ttl, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Save " + entity.getClass().getSimpleName());
 
         try {
@@ -245,7 +260,7 @@ public class EntityManager {
                 }
             }
 
-            saveEntity(primaryKey, entity, fieldFilter, dataOperationsProfile);
+            saveEntity(primaryKey, entity, fieldFilter, ttl, dataOperationsProfile);
             indexManager.updateIndexOnSave(entity, oldEntity, dataOperationsProfile);
 
             listenerInvocationHelper.invokePostPersistListener(metadata.getListenerMetadata(), entity);
@@ -576,7 +591,7 @@ public class EntityManager {
         throw new RuntimeException(descr, e);
     }
 
-    private <E, K> void saveEntity(K primaryKey, E entity, FieldFilter fieldFilter, DataOperationsProfile dataOperationsProfile) {
+    private <E, K> void saveEntity(K primaryKey, E entity, FieldFilter fieldFilter, Integer ttl, DataOperationsProfile dataOperationsProfile) {
         EntityMetadata metadata = getMetadata(entity.getClass());
 
         if (!entity.getClass().equals(metadata.getEntityClass())) {
@@ -585,12 +600,15 @@ public class EntityManager {
 
         try {
             Map<String, Object> values = new HashMap<String, Object>();
-
+            int timeToLive = ttl == null ? metadata.getEntityTTL() : ttl;
             Class<? extends AbstractHerculesSerializer> entitySerializerClass = metadata.getEntitySerializer();
-            if (entitySerializerClass != null) {
-                if (fieldFilter != null) {
+            if (fieldFilter != null) {
+                if (entitySerializerClass != null) {
                     throw new RuntimeException(MessageFormat.format("Selective save doesn't support for entity {0} with serializers", entity.getClass().getSimpleName()));
                 }
+            }
+
+            if (entitySerializerClass != null) {
                 values.put(SERIALIZED_ENTITY_TOP_KEY, entity);
             } else {
                 boolean notNullValueExisted = false;
@@ -614,7 +632,8 @@ public class EntityManager {
                 }
             }
 
-            dataDriver.insert(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile, getRowSerializerForEntity(metadata), primaryKey, values);
+            dataDriver.insert(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile,
+                    getRowSerializerForEntity(metadata), primaryKey, values, timeToLive);
         } catch (IllegalAccessException e) {
             String msg = "Error: build value map for " + entity.getClass().getName();
             monitoring.inc(HerculesMonitoringGroup.HERCULES_EM, msg);
