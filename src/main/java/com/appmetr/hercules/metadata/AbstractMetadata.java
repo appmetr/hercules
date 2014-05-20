@@ -1,5 +1,6 @@
 package com.appmetr.hercules.metadata;
 
+import com.appmetr.hercules.driver.DataDriver;
 import com.appmetr.hercules.serializers.AbstractHerculesSerializer;
 import me.prettyprint.hector.api.ddl.ComparatorType;
 
@@ -11,6 +12,7 @@ public abstract class AbstractMetadata {
     private ComparatorType comparatorType;
 
     private EntityListenerMetadata listenerMetadata;
+    private int entityTTL = DataDriver.EMPTY_TTL;
 
     public Class getEntityClass() {
         return entityClass;
@@ -50,5 +52,13 @@ public abstract class AbstractMetadata {
 
     public void setListenerMetadata(EntityListenerMetadata listenerMetadata) {
         this.listenerMetadata = listenerMetadata;
+    }
+
+    public int getEntityTTL() {
+        return entityTTL;
+    }
+
+    public void setEntityTTL(int entityTTL) {
+        this.entityTTL = entityTTL;
     }
 }

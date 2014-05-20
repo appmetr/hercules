@@ -107,8 +107,16 @@ public abstract class AbstractDAO<E, K> {
         save(key, entity, (DataOperationsProfile) null);
     }
 
+    public void save(K key, E entity, int ttl) {
+        save(key, entity, ttl, null);
+    }
+
     public void save(K key, E entity, DataOperationsProfile dataOperationsProfile) {
         getHercules().getEntityManager().save(key, entity, null, dataOperationsProfile);
+    }
+
+    public void save(K key, E entity, int ttl, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getEntityManager().save(key, entity, ttl, dataOperationsProfile);
     }
 
     public void save(K key, E entity, FieldFilter fieldFilter) {
@@ -123,8 +131,16 @@ public abstract class AbstractDAO<E, K> {
         save(entity, (DataOperationsProfile) null);
     }
 
+    public void save(E entity, int ttl) {
+        save(entity, ttl, null);
+    }
+
     public void save(E entity, DataOperationsProfile dataOperationsProfile) {
         getHercules().getEntityManager().save(entity, null, dataOperationsProfile);
+    }
+
+    public void save(E entity, int ttl, DataOperationsProfile dataOperationsProfile) {
+        getHercules().getEntityManager().save(entity, ttl, dataOperationsProfile);
     }
 
     public void save(E entity, FieldFilter fieldFilter) {
@@ -139,8 +155,16 @@ public abstract class AbstractDAO<E, K> {
         save(entities, null);
     }
 
+    public void save(Iterable<E> entities, int ttl) {
+        save(entities, ttl, null);
+    }
+
     public void save(Iterable<E> entities, DataOperationsProfile dataOperationsProfile) {
         for (E entity : entities) save(entity, dataOperationsProfile);
+    }
+
+    public void save(Iterable<E> entities, int ttl, DataOperationsProfile dataOperationsProfile) {
+        for (E entity : entities) save(entity, ttl, dataOperationsProfile);
     }
 
     public void delete(E entity) {
@@ -225,7 +249,8 @@ public abstract class AbstractDAO<E, K> {
 
     public int processKeyRange(K from, K to, Integer batchSize, BatchProcessor<K> processor, DataOperationsProfile dataOperationsProfile) {
         return new BatchExecutor<K, K>(new ImmutableKeyBatchIterator<K>(from, to, batchSize) {
-            @Override public List<K> getRange(K from, K to, int batchSize, DataOperationsProfile dataOperationsProfile) {
+            @Override
+            public List<K> getRange(K from, K to, int batchSize, DataOperationsProfile dataOperationsProfile) {
                 return getHercules().getEntityManager().getKeyRange(entityClass, from, to, batchSize, dataOperationsProfile);
             }
         }, processor).execute(dataOperationsProfile);

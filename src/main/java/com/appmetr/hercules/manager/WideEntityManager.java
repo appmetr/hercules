@@ -11,10 +11,10 @@ import com.appmetr.hercules.metadata.WideEntityMetadata;
 import com.appmetr.hercules.operations.ExecutableOperation;
 import com.appmetr.hercules.operations.OperationsCollector;
 import com.appmetr.hercules.operations.OperationsResult;
+import com.appmetr.hercules.operations.SaveExecutableOperation;
 import com.appmetr.hercules.partition.NoPartitionProvider;
 import com.appmetr.hercules.partition.PartitionProvider;
 import com.appmetr.hercules.profile.DataOperationsProfile;
-import com.appmetr.hercules.serializers.InformerSerializer;
 import com.appmetr.hercules.serializers.SerializerProvider;
 import com.appmetr.hercules.wide.SliceDataSpecificator;
 import com.appmetr.hercules.wide.SliceDataSpecificatorByCF;
@@ -95,7 +95,8 @@ public class WideEntityManager {
                                     kv.getSliceDataSpecificator().getStart(),
                                     kv.getSliceDataSpecificator().getEnd(),
                                     kv.getSliceDataSpecificator().isOrderDesc(),
-                                    partLimit));
+                                    partLimit)
+                    );
 
                     if (result.hasResult()) {
                         totalResults.putAll(result.getEntries());
@@ -156,7 +157,16 @@ public class WideEntityManager {
         save(rowKey, getTopKey(entity, getMetadata(entity.getClass())), entity, dataOperationsProfile);
     }
 
+    public <E, R> void save(R rowKey, E entity, int ttl, DataOperationsProfile dataOperationsProfile) {
+        save(rowKey, getTopKey(entity, getMetadata(entity.getClass())), entity, ttl, dataOperationsProfile);
+    }
+
     public <E, R, T> void save(Class<E> clazz, R rowKey, Iterable<E> entities, DataOperationsProfile dataOperationsProfile) {
+        WideEntityMetadata metadata = getMetadata(clazz);
+        save(clazz, rowKey, entities, metadata.getEntityTTL(), dataOperationsProfile);
+    }
+
+    public <E, R, T> void save(Class<E> clazz, R rowKey, Iterable<E> entities, int ttl, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_WM, "Save " + clazz.getSimpleName());
 
         try {
@@ -182,7 +192,7 @@ public class WideEntityManager {
 
             //Save regrouped entities
             for (String cfName : partitionedValues.keySet()) {
-                dataDriver.insert(hercules.getKeyspace(), cfName, dataOperationsProfile, this.<R, T>getRowSerializerForEntity(metadata), rowKey, partitionedValues.get(cfName));
+                dataDriver.insert(hercules.getKeyspace(), cfName, dataOperationsProfile, this.<R, T>getRowSerializerForEntity(metadata), rowKey, partitionedValues.get(cfName), ttl);
 
                 for (Map.Entry<T, Object> entry : partitionedValues.get(cfName).entrySet()) {
                     listenerInvocationHelper.invokePostPersistListener(metadata.getListenerMetadata(), entry.getValue());
@@ -194,6 +204,11 @@ public class WideEntityManager {
     }
 
     public <E, R, T> void save(R rowKey, T topKey, E value, DataOperationsProfile dataOperationsProfile) {
+        WideEntityMetadata metadata = getMetadata(value.getClass());
+        save(rowKey, topKey, value, metadata.getEntityTTL(), dataOperationsProfile);
+    }
+
+    public <E, R, T> void save(R rowKey, T topKey, E value, int ttl, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_WM, "Save " + value.getClass().getSimpleName());
 
         try {
@@ -205,7 +220,7 @@ public class WideEntityManager {
             }
 
             dataDriver.insert(hercules.getKeyspace(), getCFName(metadata, rowKey, topKey), dataOperationsProfile, getRowSerializerForEntity(metadata),
-                    rowKey, topKey, value);
+                    rowKey, topKey, value, ttl);
 
             listenerInvocationHelper.invokePostPersistListener(metadata.getListenerMetadata(), value);
         } finally {
@@ -319,6 +334,7 @@ public class WideEntityManager {
             Map<Class, WideEntityMetadata> metadataMap = new HashMap<Class, WideEntityMetadata>();
             Map<Object, Class> topKeysToClassMap = new HashMap<Object, Class>();
             Map<String, Map<Object, Object>> data = new HashMap<String, Map<Object, Object>>();
+            Map<String, Map<Object, Integer>> ttls = new HashMap<String, Map<Object, Integer>>();
             Map<Object, Serializer> serializers = new HashMap<Object, Serializer>();
 
             BytesArraySerializer bytesArraySerializer = BytesArraySerializer.get();
@@ -335,6 +351,13 @@ public class WideEntityManager {
 
                 if (operationType == null) {
                     operationType = collector.getOperationType(operation);
+                }
+
+                int operationTtl = DataDriver.EMPTY_TTL;
+                if (operationType.equals(OperationsCollector.Type.SAVE)) {
+                    SaveExecutableOperation saveExecutableOperation = (SaveExecutableOperation) operation;
+                    Integer ttl = saveExecutableOperation.getTTL();
+                    operationTtl = ttl == null ? metadata.getEntityTTL() : ttl;
                 }
 
                 if (!operationType.equals(collector.getOperationType(operation))) {
@@ -386,6 +409,12 @@ public class WideEntityManager {
                         }
 
                         data.get(operationCFName).put(topKey, bytesArraySerializer.fromByteBuffer(valueSerializer.toByteBuffer(entity)));
+
+                        if (!ttls.containsKey(operationCFName)) {
+                            ttls.put(operationCFName, new LinkedHashMap<Object, Integer>());
+                        }
+                        ttls.get(operationCFName).put(topKey, operationTtl);
+
                         serializers.put(topKey, valueSerializer);
                         topKeysToClassMap.put(topKey, operation.getClazz());
                     }
@@ -418,8 +447,7 @@ public class WideEntityManager {
                         break;
                     case SAVE:
                         for (String cfName : data.keySet()) {
-                            dataDriver.insert(hercules.getKeyspace(), cfName, dataOperationsProfile, operationRowSerializer, rowKey, data.get(cfName));
-                            ;
+                            dataDriver.insert(hercules.getKeyspace(), cfName, dataOperationsProfile, operationRowSerializer, rowKey, data.get(cfName), ttls.get(cfName));
                         }
 
                         break;
@@ -507,8 +535,8 @@ public class WideEntityManager {
         return metadata.getColumnFamily() + getPartitionProvider(metadata).getPartition(rowKey, topKey);
     }
 
-    private void countEntities(DataOperationsProfile dataOperationsProfile, Collection entries){
-        if(dataOperationsProfile != null) {
+    private void countEntities(DataOperationsProfile dataOperationsProfile, Collection entries) {
+        if (dataOperationsProfile != null) {
             dataOperationsProfile.count += entries.size();
         }
     }

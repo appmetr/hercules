@@ -28,6 +28,7 @@ public class WideEntityMetadataExtractor {
 
         MetadataExtractorUtils.setEntityComparatorType(clazz, metadata, wideEntityAnnotation.comparatorType());
         MetadataExtractorUtils.setEntitySerializer(clazz, metadata);
+        MetadataExtractorUtils.setEntityTTL(clazz, metadata);
 
         if (metadata.getEntitySerializer() == null) {
             throw new RuntimeException("Wide entity " + clazz.getSimpleName() + " should contain " + Serializer.class.getSimpleName());
