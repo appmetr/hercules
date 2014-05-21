@@ -42,14 +42,6 @@ public class TestTTL extends TestHercules {
         assertNull(entity);
     }
 
-    @Test(expected = RuntimeException.class)
-    public void testException() {
-        TestEntity liveForever = new TestEntity();
-        TestEntityDAO dao = new TestEntityDAO(hercules);
-        liveForever.id = ONE_SECOND;
-        dao.save(liveForever, -1);
-    }
-
     @Test
     public void testWithAnnotation() throws Exception {
         TestEntityWithTTL withTtl = new TestEntityWithTTL(WITH_ANNOTATION);
