@@ -1,7 +1,7 @@
 package com.appmetr.hercules;
 
 import com.appmetr.hercules.model.TestEntity;
-import com.appmetr.hercules.model.TestEntityWithTtl;
+import com.appmetr.hercules.model.TestEntityWithTTL;
 import com.appmetr.hercules.model.TestWideEntity;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -19,7 +19,7 @@ public abstract class TestHercules {
 
         //Entity
         classes.add(TestEntity.class);
-        classes.add(TestEntityWithTtl.class);
+        classes.add(TestEntityWithTTL.class);
         classes.add(TestWideEntity.class);
 
         HerculesConfig config = new HerculesConfig(

@@ -1,10 +1,10 @@
 package com.appmetr.hercules;
 
 import com.appmetr.hercules.dao.TestEntityDAO;
-import com.appmetr.hercules.dao.TestEntityWithTtlDAO;
+import com.appmetr.hercules.dao.TestEntityWithTTLDAO;
 import com.appmetr.hercules.dao.TestWideEntityDAO;
 import com.appmetr.hercules.model.TestEntity;
-import com.appmetr.hercules.model.TestEntityWithTtl;
+import com.appmetr.hercules.model.TestEntityWithTTL;
 import com.appmetr.hercules.model.TestWideEntity;
 import com.appmetr.hercules.operations.OperationsCollector;
 import com.appmetr.hercules.operations.SaveExecutableOperation;
@@ -14,7 +14,7 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class TestTtl extends TestHercules {
+public class TestTTL extends TestHercules {
 
     public static final int SECOND_TTL = 1;
 
@@ -52,8 +52,8 @@ public class TestTtl extends TestHercules {
 
     @Test
     public void testWithAnnotation() throws Exception {
-        TestEntityWithTtl withTtl = new TestEntityWithTtl(WITH_ANNOTATION);
-        TestEntityWithTtlDAO dao = new TestEntityWithTtlDAO(hercules);
+        TestEntityWithTTL withTtl = new TestEntityWithTTL(WITH_ANNOTATION);
+        TestEntityWithTTLDAO dao = new TestEntityWithTTLDAO(hercules);
         dao.save(withTtl);
         withTtl.id = PARAMETER_PREFERABLE;
         dao.save(withTtl, SECOND_TTL);

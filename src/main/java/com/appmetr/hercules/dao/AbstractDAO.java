@@ -249,8 +249,7 @@ public abstract class AbstractDAO<E, K> {
 
     public int processKeyRange(K from, K to, Integer batchSize, BatchProcessor<K> processor, DataOperationsProfile dataOperationsProfile) {
         return new BatchExecutor<K, K>(new ImmutableKeyBatchIterator<K>(from, to, batchSize) {
-            @Override
-            public List<K> getRange(K from, K to, int batchSize, DataOperationsProfile dataOperationsProfile) {
+            @Override public List<K> getRange(K from, K to, int batchSize, DataOperationsProfile dataOperationsProfile) {
                 return getHercules().getEntityManager().getKeyRange(entityClass, from, to, batchSize, dataOperationsProfile);
             }
         }, processor).execute(dataOperationsProfile);

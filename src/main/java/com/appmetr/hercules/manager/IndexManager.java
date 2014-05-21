@@ -200,8 +200,7 @@ public class IndexManager {
 
     private BatchIterator<Object, Object> getEntityClassBatchIterator(final Class clazz) {
         return new TupleBatchIterator<Object, Object>(null, null) {
-            @Override
-            protected Tuple2 getRangeTuple(Object from, Object to, int batchSize, DataOperationsProfile dataOperationsProfile) {
+            @Override protected Tuple2 getRangeTuple(Object from, Object to, int batchSize, DataOperationsProfile dataOperationsProfile) {
                 return entityManager.getRange(clazz, from, to, batchSize, dataOperationsProfile);
             }
 

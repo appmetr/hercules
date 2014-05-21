@@ -356,7 +356,7 @@ public class ThriftDataDriver implements DataDriver {
         Map<R, Map<T, Object>> valuesToInsert = new HashMap<R, Map<T, Object>>();
         valuesToInsert.put(rowKey, values);
 
-        insert(keyspace, columnFamily, dataOperationsProfile, rowSerializer, valuesToInsert, new TtlProvider<R, T>() {
+        insert(keyspace, columnFamily, dataOperationsProfile, rowSerializer, valuesToInsert, new TTLProvider<R, T>() {
             @Override public int get(R row, T top) {
                 if (ttls == null) {
                     return DataDriver.EMPTY_TTL;
@@ -375,7 +375,7 @@ public class ThriftDataDriver implements DataDriver {
         Map<R, Map<T, Object>> valuesToInsert = new HashMap<R, Map<T, Object>>();
         valuesToInsert.put(rowKey, values);
 
-        insert(keyspace, columnFamily, dataOperationsProfile, rowSerializer, valuesToInsert, new TtlProvider<R, T>() {
+        insert(keyspace, columnFamily, dataOperationsProfile, rowSerializer, valuesToInsert, new TTLProvider<R, T>() {
             @Override public int get(R row, T top) {
                 return ttl;
             }
@@ -384,7 +384,7 @@ public class ThriftDataDriver implements DataDriver {
 
     @Override
     public <R, T> void insert(Keyspace keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, Map<R, Map<T, Object>> values, final Map<R, Map<T, Integer>> ttls) {
-        insert(keyspace, columnFamily, dataOperationsProfile, rowSerializer, values, new TtlProvider<R, T>() {
+        insert(keyspace, columnFamily, dataOperationsProfile, rowSerializer, values, new TTLProvider<R, T>() {
             @Override public int get(R row, T top) {
                 if (ttls == null) {
                     return DataDriver.EMPTY_TTL;
@@ -402,7 +402,7 @@ public class ThriftDataDriver implements DataDriver {
         });
     }
 
-    private <R, T> void insert(Keyspace keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, Map<R, Map<T, Object>> values, TtlProvider<R, T> ttlProvider) {
+    private <R, T> void insert(Keyspace keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, Map<R, Map<T, Object>> values, TTLProvider<R, T> ttlProvider) {
         Serializer<R> rowKeySerializer = rowSerializer.getRowKeySerializer();
 
         Mutator<ByteBuffer> mutator = HFactory.createMutator(keyspace, ByteBufferSerializer.get());
@@ -536,7 +536,7 @@ public class ThriftDataDriver implements DataDriver {
         return topCount == null || topCount > MAX_TOP_COUNT ? MAX_TOP_COUNT : topCount;
     }
 
-    private static interface TtlProvider<R, T> {
+    private static interface TTLProvider<R, T> {
         int get(R row, T top);
     }
 }

@@ -1,21 +1,24 @@
 package com.appmetr.hercules.model;
 
-import com.appmetr.hercules.annotations.*;
+import com.appmetr.hercules.annotations.Entity;
+import com.appmetr.hercules.annotations.Id;
+import com.appmetr.hercules.annotations.PKIndex;
+import com.appmetr.hercules.annotations.TimeToLive;
 
 import java.io.Serializable;
 
 @Entity
 @PKIndex
 @TimeToLive(2)
-public class TestEntityWithTtl implements Serializable {
+public class TestEntityWithTTL implements Serializable {
     @Id public String id;
 
     public String stringValue;
 
-    public TestEntityWithTtl() {
+    public TestEntityWithTTL() {
     }
 
-    public TestEntityWithTtl(String id) {
+    public TestEntityWithTTL(String id) {
         this.id = id;
         this.stringValue = "value" + id;
     }
@@ -32,7 +35,7 @@ public class TestEntityWithTtl implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        TestEntityWithTtl entity = (TestEntityWithTtl) o;
+        TestEntityWithTTL entity = (TestEntityWithTTL) o;
 
         if (id != null ? !id.equals(entity.id) : entity.id != null) return false;
         if (stringValue != null ? !stringValue.equals(entity.stringValue) : entity.stringValue != null) return false;
