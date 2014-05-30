@@ -181,7 +181,7 @@ public abstract class AbstractDAO<E, K> {
 
     public void delete(List<E> entities, DataOperationsProfile dataOperationsProfile) {
         for (E entity : entities) {
-            delete(entity);
+            delete(entity, dataOperationsProfile);
         }
     }
 
@@ -216,7 +216,7 @@ public abstract class AbstractDAO<E, K> {
     }
 
     public int processAll(Integer batchSize, BatchProcessor<E> processor, DataOperationsProfile dataOperationsProfile) {
-        return processRange(null, null, batchSize, processor);
+        return processRange(null, null, batchSize, processor, dataOperationsProfile);
     }
 
     public int processRange(K from, K to, Integer batchSize, BatchProcessor<E> processor) {
@@ -232,7 +232,7 @@ public abstract class AbstractDAO<E, K> {
     }
 
     public int processAllKeys(BatchProcessor<K> processor, DataOperationsProfile dataOperationsProfile) {
-        return processKeyRange(null, null, Hercules.DEFAULT_BATCH_SIZE, processor);
+        return processKeyRange(null, null, Hercules.DEFAULT_BATCH_SIZE, processor, dataOperationsProfile);
     }
 
     public int processAllKeys(Integer batchSize, BatchProcessor<K> processor) {
@@ -240,7 +240,7 @@ public abstract class AbstractDAO<E, K> {
     }
 
     public int processAllKeys(Integer batchSize, BatchProcessor<K> processor, DataOperationsProfile dataOperationsProfile) {
-        return processKeyRange(null, null, batchSize, processor);
+        return processKeyRange(null, null, batchSize, processor, dataOperationsProfile);
     }
 
     public int processKeyRange(K from, K to, Integer batchSize, BatchProcessor<K> processor) {
