@@ -21,8 +21,8 @@ public class SliceDataSpecificator<N> {
     private N[] columnsArray;
     private Collection<N> columnsCollection;
 
-    private N start;
-    private N end;
+    private N lowEnd;
+    private N highEnd;
     private boolean orderDesc;
     private int limit;
 
@@ -38,11 +38,11 @@ public class SliceDataSpecificator<N> {
         this.columnsCollection = columns;
     }
 
-    public SliceDataSpecificator(N start, N end, boolean orderDesc, Integer limit) {
+    public SliceDataSpecificator(N lowEnd, N highEnd, boolean orderDesc, Integer limit) {
         type = SliceDataSpecificatorType.RANGE;
 
-        this.start = start;
-        this.end = end;
+        this.lowEnd = lowEnd;
+        this.highEnd = highEnd;
         this.orderDesc = orderDesc;
         this.limit = limit == null || limit > DataDriver.MAX_TOP_COUNT ? DataDriver.MAX_TOP_COUNT : limit;
     }
@@ -56,9 +56,9 @@ public class SliceDataSpecificator<N> {
             }
         } else if (type == SliceDataSpecificatorType.RANGE) {
             if (orderDesc) { // Cassandra's WTF requirement
-                sliceQuery.setRange(end, start, orderDesc, limit);
+                sliceQuery.setRange(highEnd, lowEnd, orderDesc, limit);
             } else {
-                sliceQuery.setRange(start, end, orderDesc, limit);
+                sliceQuery.setRange(lowEnd, highEnd, orderDesc, limit);
             }
 
         } else {
@@ -75,9 +75,9 @@ public class SliceDataSpecificator<N> {
             }
         } else if (type == SliceDataSpecificatorType.RANGE) {
             if (orderDesc) { // Cassandra's WTF requirement
-                sliceQuery.setRange(end, start, orderDesc, limit);
+                sliceQuery.setRange(highEnd, lowEnd, orderDesc, limit);
             } else {
-                sliceQuery.setRange(start, end, orderDesc, limit);
+                sliceQuery.setRange(lowEnd, highEnd, orderDesc, limit);
             }
 
         } else {
@@ -94,9 +94,9 @@ public class SliceDataSpecificator<N> {
             }
         } else if (type == SliceDataSpecificatorType.RANGE) {
             if (orderDesc) { // Cassandra's WTF requirement
-                sliceQuery.setRange(end, start, orderDesc, limit);
+                sliceQuery.setRange(highEnd, lowEnd, orderDesc, limit);
             } else {
-                sliceQuery.setRange(start, end, orderDesc, limit);
+                sliceQuery.setRange(lowEnd, highEnd, orderDesc, limit);
             }
 
         } else {
@@ -120,12 +120,12 @@ public class SliceDataSpecificator<N> {
         return columnsArray != null ? Arrays.asList(columnsArray).iterator() : columnsCollection.iterator();
     }
 
-    public N getStart() {
-        return start;
+    public N getLowEnd() {
+        return lowEnd;
     }
 
-    public N getEnd() {
-        return end;
+    public N getHighEnd() {
+        return highEnd;
     }
 
     public boolean isOrderDesc() {

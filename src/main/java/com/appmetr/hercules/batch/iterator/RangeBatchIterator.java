@@ -16,34 +16,46 @@ import java.util.List;
  * @param <K> entity key for iterate
  */
 public abstract class RangeBatchIterator<E, K> extends AbstractBatchIterator<E, K> {
-    protected K lastKey;
+    protected K currentLowKey;
+    protected K currentHighKey;
 
     //Override this method in child classes
-    protected abstract List<E> getRange(K from, K to, int batchSize, DataOperationsProfile dataOperationsProfile);
+    protected abstract List<E> getRange(K lowEnd, K highEnd, boolean reverse, int batchSize, DataOperationsProfile dataOperationsProfile);
+
     protected abstract K getKey(E item);
 
     public RangeBatchIterator() {
         super();
+        currentLowKey = lowEnd;
+        currentHighKey = highEnd;
     }
 
     public RangeBatchIterator(int batchSize) {
         super(batchSize);
+        currentLowKey = lowEnd;
+        currentHighKey = highEnd;
     }
 
-    public RangeBatchIterator(K from, K to) {
-        super(from, to);
-
-        lastKey = from;
+    public RangeBatchIterator(K lowEnd, K highEnd) {
+        super(lowEnd, highEnd);
+        currentLowKey = lowEnd;
+        currentHighKey = highEnd;
     }
 
-    public RangeBatchIterator(K from, K to, int batchSize) {
-        super(from, to, batchSize);
+    public RangeBatchIterator(K lowEnd, K highEnd, int batchSize) {
+        super(lowEnd, highEnd, batchSize);
+        currentLowKey = lowEnd;
+        currentHighKey = highEnd;
+    }
 
-        lastKey = from;
+    protected RangeBatchIterator(K lowEnd, K highEnd, boolean reverse, int batchSize) {
+        super(lowEnd, highEnd, reverse, batchSize);
+        currentLowKey = lowEnd;
+        currentHighKey = highEnd;
     }
 
     @Override public List<E> next(DataOperationsProfile dataOperationsProfile) {
-        List<E> batch = getRange(lastKey, to, batchSize + 1, dataOperationsProfile);
+        List<E> batch = getRange(currentLowKey, currentHighKey, reverse, batchSize + 1, dataOperationsProfile);
 
         List<E> result = new ArrayList<E>();
 
@@ -53,7 +65,12 @@ public abstract class RangeBatchIterator<E, K> extends AbstractBatchIterator<E, 
             result = batch;
             hasNext = false;
         } else {
-            lastKey = getKey(batch.get(batch.size() - 1));
+            K lastKey = getKey(batch.get(batch.size() - 1));
+            if (reverse) {
+                currentHighKey = lastKey;
+            } else {
+                currentLowKey = lastKey;
+            }
             result = batch.subList(0, batch.size() - 1);
         }
 

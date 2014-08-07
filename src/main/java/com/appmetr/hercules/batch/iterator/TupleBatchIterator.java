@@ -28,7 +28,7 @@ public abstract class TupleBatchIterator<E, K> extends AbstractBatchIterator<E, 
     protected abstract K getKey(E item);
 
     @Override public List<E> next(DataOperationsProfile dataOperationsProfile) {
-        Tuple2<List<E>, K> range = getRangeTuple(from, to, batchSize + 1, dataOperationsProfile);
+        Tuple2<List<E>, K> range = getRangeTuple(lowEnd, highEnd, batchSize + 1, dataOperationsProfile);
         List<E> batch = range.e1;
 
         K lastKeyInBatch = batch.size() > 0 ? getKey(batch.get(batch.size() - 1)) : null;
@@ -48,7 +48,7 @@ public abstract class TupleBatchIterator<E, K> extends AbstractBatchIterator<E, 
 
         prevKey = lastKey;
         lastKey = range.e2;
-        from = lastKey;
+        lowEnd = lastKey;
 
         if (lastKey == null) {
             hasNext = false;

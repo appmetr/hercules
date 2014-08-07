@@ -20,10 +20,10 @@ public class DateSegment<TDatedColumn extends DatedColumn<TDatedColumn>> {
     }
 
     public DateSegment(SliceDataSpecificator<TDatedColumn> sliceDataSpecificator) {
-        from = sliceDataSpecificator.getStart() != null ? sliceDataSpecificator.getStart().getDate() : null;
-        fromColumn = sliceDataSpecificator.getStart();
-        to = sliceDataSpecificator.getEnd() != null ? sliceDataSpecificator.getEnd().getDate() : null;
-        toColumn = sliceDataSpecificator.getEnd();
+        from = sliceDataSpecificator.getLowEnd() != null ? sliceDataSpecificator.getLowEnd().getDate() : null;
+        fromColumn = sliceDataSpecificator.getLowEnd();
+        to = sliceDataSpecificator.getHighEnd() != null ? sliceDataSpecificator.getHighEnd().getDate() : null;
+        toColumn = sliceDataSpecificator.getHighEnd();
     }
 
     public DateSegment<TDatedColumn> intersection(DateSegment<TDatedColumn> segment) {

@@ -6,32 +6,35 @@ import com.appmetr.hercules.failover.FailoverConf;
 import org.slf4j.Logger;
 
 public abstract class AbstractBatchIterator<E, K> implements BatchIterator<E, K> {
-    protected K from;
-    protected K to;
+    protected K lowEnd = null;
+    protected K highEnd = null;
+    protected boolean reverse = false;
     protected int batchSize = Hercules.DEFAULT_BATCH_SIZE;
 
     protected boolean hasNext = true;
 
     public AbstractBatchIterator() {
-        this.from = null;
-        this.to = null;
+    }
+
+    public AbstractBatchIterator(K lowEnd, K highEnd) {
+        this.lowEnd = lowEnd;
+        this.highEnd = highEnd;
     }
 
     public AbstractBatchIterator(int batchSize) {
-        this.from = null;
-        this.to = null;
-
         this.batchSize = batchSize;
     }
 
-    public AbstractBatchIterator(K from, K to) {
-        this.from = from;
-        this.to = to;
+    public AbstractBatchIterator(K lowEnd, K highEnd, int batchSize) {
+        this.lowEnd = lowEnd;
+        this.highEnd = highEnd;
+        this.batchSize = batchSize;
     }
 
-    public AbstractBatchIterator(K from, K to, int batchSize) {
-        this.from = from;
-        this.to = to;
+    public AbstractBatchIterator(K lowEnd, K highEnd, boolean reverse, int batchSize) {
+        this.lowEnd = lowEnd;
+        this.highEnd = highEnd;
+        this.reverse = reverse;
         this.batchSize = batchSize;
     }
 

@@ -60,12 +60,12 @@ public class WideEntityManager {
         return get(clazz, rowKey, new SliceDataSpecificator<T>(columns), dataOperationsProfile);
     }
 
-    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, T start, T end, DataOperationsProfile dataOperationsProfile) {
-        return get(clazz, rowKey, new SliceDataSpecificator<T>(start, end, false, null), dataOperationsProfile);
+    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, T lowEnd, T highEnd, DataOperationsProfile dataOperationsProfile) {
+        return get(clazz, rowKey, new SliceDataSpecificator<T>(lowEnd, highEnd, false, null), dataOperationsProfile);
     }
 
-    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, T start, T end, boolean reverse, Integer count, DataOperationsProfile dataOperationsProfile) {
-        return get(clazz, rowKey, new SliceDataSpecificator<T>(start, end, reverse, count), dataOperationsProfile);
+    public <E, R, T> List<E> get(Class<E> clazz, R rowKey, T lowEnd, T highEnd, boolean reverse, Integer count, DataOperationsProfile dataOperationsProfile) {
+        return get(clazz, rowKey, new SliceDataSpecificator<T>(lowEnd, highEnd, reverse, count), dataOperationsProfile);
     }
 
     public <E, R, T> List<E> get(Class<E> clazz, R rowKey, SliceDataSpecificator<T> sliceDataSpecificator, DataOperationsProfile dataOperationsProfile) {
@@ -92,8 +92,8 @@ public class WideEntityManager {
                     HerculesQueryResult<T> result = dataDriver.getSlice(
                             hercules.getKeyspace(), metadata.getColumnFamily() + kv.getPartitionName(), dataOperationsProfile, rowSerializer, rowKey,
                             new SliceDataSpecificator<T>(
-                                    kv.getSliceDataSpecificator().getStart(),
-                                    kv.getSliceDataSpecificator().getEnd(),
+                                    kv.getSliceDataSpecificator().getLowEnd(),
+                                    kv.getSliceDataSpecificator().getHighEnd(),
                                     kv.getSliceDataSpecificator().isOrderDesc(),
                                     partLimit)
                     );
