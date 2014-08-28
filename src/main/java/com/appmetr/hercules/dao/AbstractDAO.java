@@ -95,6 +95,22 @@ public abstract class AbstractDAO<E, K> {
         return getHercules().getEntityManager().getSingleByFK(entityClass, foreignKey, dataOperationsProfile);
     }
 
+    public <U> List<E> getByCollectionIndex(String indexedFieldName, U indexValue) {
+        return getByCollectionIndex(indexedFieldName, indexValue, null);
+    }
+
+    public <U> List<E> getByCollectionIndex(String indexedFieldName, U indexValue, DataOperationsProfile operationsProfile) {
+        return getHercules().getEntityManager().getByCollectionIndex(entityClass, indexedFieldName, indexValue, operationsProfile);
+    }
+
+    public <U> E getSingleByCollectionIndex(String indexedFieldName, U indexValue) {
+        return getSingleByCollectionIndex(indexedFieldName, indexValue, null);
+    }
+
+    public <U> E getSingleByCollectionIndex(String indexedFieldName, U indexValue, DataOperationsProfile operationsProfile) {
+        return getHercules().getEntityManager().getSingleByCollectionIndex(entityClass, indexedFieldName, indexValue, operationsProfile);
+    }
+
     public int getCountByFK(ForeignKey foreignKey) {
         return getCountByFK(foreignKey, null);
     }
@@ -249,7 +265,8 @@ public abstract class AbstractDAO<E, K> {
 
     public int processKeyRange(K from, K to, Integer batchSize, BatchProcessor<K> processor, DataOperationsProfile dataOperationsProfile) {
         return new BatchExecutor<K, K>(new ImmutableKeyBatchIterator<K>(from, to, batchSize) {
-            @Override public List<K> getRange(K from, K to, int batchSize, DataOperationsProfile dataOperationsProfile) {
+            @Override
+            public List<K> getRange(K from, K to, int batchSize, DataOperationsProfile dataOperationsProfile) {
                 return getHercules().getEntityManager().getKeyRange(entityClass, from, to, batchSize, dataOperationsProfile);
             }
         }, processor).execute(dataOperationsProfile);

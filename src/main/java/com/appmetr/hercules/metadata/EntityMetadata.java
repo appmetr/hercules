@@ -15,6 +15,7 @@ public class EntityMetadata extends AbstractMetadata {
 
     private Map<Class<? extends ForeignKey>, ForeignKeyMetadata> indexes = new HashMap<Class<? extends ForeignKey>, ForeignKeyMetadata>();
     private boolean createPrimaryKeyIndex = false;
+    private Map<String, CollectionIndexMetadata> collectionIndexes = new HashMap<String, CollectionIndexMetadata>();
 
     private Map<Field, String> fieldToColumn = new HashMap<Field, String>();
     private Map<String, Class> columnClasses = new HashMap<String, Class>();
@@ -49,17 +50,17 @@ public class EntityMetadata extends AbstractMetadata {
         return indexes.get(keyClass);
     }
 
-    public void addIndex(Class<? extends ForeignKey> keyClass, ForeignKeyMetadata keyMetadata) {
-        indexes.put(keyClass, keyMetadata);
-    }
+    public void addIndex(Class<? extends ForeignKey> keyClass, ForeignKeyMetadata keyMetadata) { indexes.put(keyClass, keyMetadata); }
 
     public boolean isCreatePrimaryKeyIndex() {
         return createPrimaryKeyIndex;
     }
 
-    public void setCreatePrimaryKeyIndex(boolean createPrimaryKeyIndex) {
-        this.createPrimaryKeyIndex = createPrimaryKeyIndex;
-    }
+    public void setCreatePrimaryKeyIndex(boolean createPrimaryKeyIndex) { this.createPrimaryKeyIndex = createPrimaryKeyIndex; }
+
+    public Map<String, CollectionIndexMetadata> getCollectionIndexes() { return collectionIndexes; }
+
+    public void setCollectionIndexes(Map<String, CollectionIndexMetadata> collectionIndexes) { this.collectionIndexes = collectionIndexes; }
 
     public Map<Field, String> getFieldToColumn() {
         return fieldToColumn;
@@ -89,9 +90,7 @@ public class EntityMetadata extends AbstractMetadata {
         return columnSerializers;
     }
 
-    public void setColumnSerializers(Map<String, Class<? extends AbstractHerculesSerializer>> columnSerializers) {
-        this.columnSerializers = columnSerializers;
-    }
+    public void setColumnSerializers(Map<String, Class<? extends AbstractHerculesSerializer>> columnSerializers) { this.columnSerializers = columnSerializers; }
 
     public Class<? extends AbstractHerculesSerializer> getColumnSerializer(String name) { return columnSerializers.get(name); }
 

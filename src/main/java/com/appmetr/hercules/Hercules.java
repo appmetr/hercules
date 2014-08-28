@@ -57,8 +57,8 @@ public class Hercules {
     private Map<Class, EntityMetadata> entityClassMetadataCache = new HashMap<Class, EntityMetadata>();
     private Map<Class, WideEntityMetadata> wideEntityClassMetadataCache = new HashMap<Class, WideEntityMetadata>();
 
-    EntityMetadataExtractor metadataExtractor = new EntityMetadataExtractor();
-    WideEntityMetadataExtractor wideMetadataExtractor = new WideEntityMetadataExtractor();
+    @Inject EntityMetadataExtractor metadataExtractor;
+    @Inject WideEntityMetadataExtractor wideMetadataExtractor;
 
     private Cluster cluster;
     private Keyspace keyspace;
@@ -130,6 +130,9 @@ public class Hercules {
 
             checkAndCreateColumnFamily(metadata.getColumnFamily(), metadata.getComparatorType());
 
+        }
+        //indexes may use entity pk serializers
+        for (EntityMetadata metadata : entityClassMetadataCache.values()) {
             indexManager.checkAndCreateEntityIndexes(metadata);
         }
     }

@@ -11,6 +11,7 @@ import com.appmetr.hercules.driver.serializer.ByteArrayRowSerializer;
 import com.appmetr.hercules.driver.serializer.ColumnRowSerializer;
 import com.appmetr.hercules.driver.serializer.RowSerializer;
 import com.appmetr.hercules.keys.ForeignKey;
+import com.appmetr.hercules.metadata.CollectionIndexMetadata;
 import com.appmetr.hercules.metadata.EntityMetadata;
 import com.appmetr.hercules.metadata.ForeignKeyMetadata;
 import com.appmetr.hercules.profile.DataOperationsProfile;
@@ -171,6 +172,17 @@ public class EntityManager {
         return entites.size() > 0 ? entites.get(0) : null;
     }
 
+    public <E, U> List<E> getByCollectionIndex(Class<E> clazz, String indexedFieldame, U indexValue, DataOperationsProfile dataOperationsProfile) {
+        return getByCollectionIndex(clazz, indexedFieldame, indexValue, null, dataOperationsProfile);
+    }
+
+    public <E, U> E getSingleByCollectionIndex(Class<E> clazz, String indexedFieldName, U indexValue, DataOperationsProfile dataOperationsProfile) {
+        List<E> entites = getByCollectionIndex(clazz, indexedFieldName, indexValue, 1, dataOperationsProfile);
+
+        return entites.size() > 0 ? entites.get(0) : null;
+    }
+
+
     public <E> int getCountByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get count by FK " + clazz.getSimpleName());
 
@@ -250,7 +262,7 @@ public class EntityManager {
             }
 
             E oldEntity = null;
-            if (metadata.getIndexes().size() > 0) {
+            if (metadata.getIndexes().size() > 0 || metadata.getCollectionIndexes().size()>0) {
                 HerculesQueryResult<String> queryResult = dataDriver.getRow(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile, getRowSerializerForEntity(metadata), primaryKey);
 
                 if (queryResult.hasResult()) {
@@ -490,6 +502,53 @@ public class EntityManager {
         }
     }
 
+    private <E, K, U> List<E> getByCollectionIndex(Class<E> clazz, String indexedFieldName, U indexValue, Integer count, DataOperationsProfile dataOperationsProfile) {
+        StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get list by CollectionIndex " + clazz.getSimpleName());
+
+        try {
+            EntityMetadata metadata = getMetadata(clazz);
+            CollectionIndexMetadata indexMetadata = metadata.getCollectionIndexes().get(indexedFieldName);
+
+            HerculesQueryResult<K> queryResult = dataDriver.getSlice(hercules.getKeyspace(), indexMetadata.getIndexColumnFamily(), dataOperationsProfile,
+                    new ByteArrayRowSerializer<Object, K>(indexMetadata.getKeyExtractor().getKeySerializer(), this.<K>getPrimaryKeySerializer(metadata)),
+                    indexValue, new SliceDataSpecificator<K>(null, null, false, count));
+
+            if (queryResult.hasResult()) {
+                countEntities(dataOperationsProfile, queryResult.getEntries());
+
+                //filtering using real entity fk
+                List<E> candidates = get(clazz, queryResult.getEntries().keySet(), dataOperationsProfile);
+                List<E> entities = new ArrayList<E>(candidates.size());
+                //TODO probably it could be removed. there is no errors in monitoring
+                for (E candidate : candidates) {
+                    boolean found = false;
+                    for (Object key : indexMetadata.getKeyExtractor().extractKeys(candidate)) {
+                        if (indexValue.equals(key)) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        monitoring.inc(HerculesMonitoringGroup.HERCULES_EM, "Error: invalid CollectionIndex");
+                        logger.error(String.format("Invalid CollectionIndex: index field %1$s, value %2$s, entity class %3$s, PK %4$s",
+                                indexedFieldName, indexValue, clazz.getSimpleName(), getPrimaryKey(candidate, metadata)));
+                        continue;
+                    }
+                    entities.add(candidate);
+                }
+                return entities;
+            } else {
+                return new ArrayList<E>();
+            }
+        } catch (RuntimeException e) {
+            monitoring.inc(HerculesMonitoringGroup.HERCULES_EM, "Error: get list by CollectionIndex exception");
+            logger.error("Entity get list by CollectionIndex exception", e);
+            throw e;
+        } finally {
+            monitor.stop();
+        }
+    }
+
     private <K> void delete(K primaryKey, EntityMetadata metadata, DataOperationsProfile dataOperationsProfile) {
         dataDriver.delete(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile,
                 new ByteArrayRowSerializer<K, String>(this.<K>getPrimaryKeySerializer(metadata), dataDriver.<String>getSerializerForClass(String.class)),
@@ -508,7 +567,11 @@ public class EntityManager {
                             metadata.getEntityClass().getSimpleName());
                 }
 
-                return (E) values.get(SERIALIZED_ENTITY_TOP_KEY);
+                E entity = (E) values.get(SERIALIZED_ENTITY_TOP_KEY);
+
+                //Set PK from parameter
+                metadata.getPrimaryKeyMetadata().getField().set(entity, primaryKey);
+                return entity;
             } else {
                 Constructor<E> constructor = clazz.getDeclaredConstructor();
                 constructor.setAccessible(true);
@@ -519,11 +582,7 @@ public class EntityManager {
 
                 try {
                     HashSet<String> processedColumns = new HashSet<String>();
-                    Field primaryKeyField = metadata.getPrimaryKeyMetadata().getField();
-
-                    if (primaryKeyField != null) {
-                        primaryKeyField.set(entity, primaryKey);
-                    }
+                    metadata.getPrimaryKeyMetadata().getField().set(entity, primaryKey);
 
                     for (Map.Entry<Field, String> entry : metadata.getFieldToColumn().entrySet()) {
                         String column = entry.getValue();
