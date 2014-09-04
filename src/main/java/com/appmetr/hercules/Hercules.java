@@ -131,7 +131,7 @@ public class Hercules {
             checkAndCreateColumnFamily(metadata.getColumnFamily(), metadata.getComparatorType());
 
         }
-        //indexes may use entity pk serializers
+        //We should have extracted metadata before create indexes
         for (EntityMetadata metadata : entityClassMetadataCache.values()) {
             indexManager.checkAndCreateEntityIndexes(metadata);
         }

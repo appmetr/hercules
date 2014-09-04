@@ -104,7 +104,6 @@ public class IndexManager {
             if (keysToRemove.size() > 0) {
                 logger.debug(MessageFormat.format("Deleting indexes (during update): column {0} from {1} by keys {2} ", primaryKey, collectionIndexMetadata.getIndexColumnFamily(), keysToRemove));
                 deleteCollectionIndex(collectionIndexMetadata.getIndexColumnFamily(), keysToRemove, indexKeySerializer, primaryKey, primaryKeySerializer, dataOperationsProfile);
-
             }
         }
     }
@@ -142,7 +141,6 @@ public class IndexManager {
             deleteRowIndex(EntityManager.PRIMARY_KEY_CF_NAME, metadata.getColumnFamily(), StringSerializer.get(), primaryKey, primaryKeySerializer, dataOperationsProfile);
         }
     }
-
 
     private void checkAndCreatePKIndex(final EntityMetadata metadata) {
         String cfName = metadata.getColumnFamily();
@@ -295,12 +293,6 @@ public class IndexManager {
         dataDriver.insert(hercules.getKeyspace(), columnFamily, dataOperationsProfile,
                 new ByteArrayRowSerializer<K, T>(indexRowKeySerializer, indexValueSerializer), multirowInsert, ttls);
     }
-
-//    private <K, T> void deleteRowIndexes(String columnFamily, K indexRowKey, Serializer<K> indexRowKeySerializer, List<T> columns, Serializer<T> columnSerializer, DataOperationsProfile dataOperationsProfile) {
-//        dataDriver.delete(hercules.getKeyspace(), columnFamily, dataOperationsProfile,
-//                new ByteArrayRowSerializer<K, T>(indexRowKeySerializer, columnSerializer),
-//                indexRowKey, columns);
-//    }
 
     private <K, T> void deleteRowIndex(String columnFamily, K indexRowKey, Serializer<K> indexRowKeySerializer, T column, Serializer<T> columnSerializer, DataOperationsProfile dataOperationsProfile) {
         dataDriver.delete(hercules.getKeyspace(), columnFamily, dataOperationsProfile,
