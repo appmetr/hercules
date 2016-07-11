@@ -46,8 +46,14 @@ public class ThriftDataDriver implements DataDriver {
     @Inject private Hercules hercules;
 
     @Override public Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections) {
+        return getOrCreateCluster(clusterName, host, maxActiveConnections, -1, 0);
+    }
+
+    @Override public Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections, long maxConnectTimeMillis, int cassandraThriftSocketTimeout) {
         CassandraHostConfigurator configurator = new CassandraHostConfigurator(host);
         configurator.setMaxActive(maxActiveConnections);
+        configurator.setMaxConnectTimeMillis(maxConnectTimeMillis);
+        configurator.setCassandraThriftSocketTimeout(cassandraThriftSocketTimeout);
 
         return HFactory.getOrCreateCluster(clusterName, configurator);
     }
