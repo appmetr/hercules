@@ -4,11 +4,11 @@ import com.appmetr.hercules.profile.DataOperationsProfile;
 
 import java.util.List;
 
-public class StoppableBatchExecutor<E, K> {
+public class BreakableIterationBatchExecutor<E, K> {
     private BatchIterator<E, K> iterator;
-    private StoppableBatchProcessor<E> processor;
+    private BreakableIterationBatchProcessor<E> processor;
 
-    public StoppableBatchExecutor(BatchIterator<E, K> iterator, StoppableBatchProcessor<E> processor) {
+    public BreakableIterationBatchExecutor(BatchIterator<E, K> iterator, BreakableIterationBatchProcessor<E> processor) {
         this.iterator = iterator;
         this.processor = processor;
     }
