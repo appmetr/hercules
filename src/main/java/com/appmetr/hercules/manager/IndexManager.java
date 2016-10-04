@@ -8,6 +8,8 @@ import com.appmetr.hercules.batch.iterator.TupleBatchIterator;
 import com.appmetr.hercules.driver.DataDriver;
 import com.appmetr.hercules.driver.HerculesMultiQueryResult;
 import com.appmetr.hercules.driver.serializer.ByteArrayRowSerializer;
+import com.appmetr.hercules.keys.CollectionKeysExtractor;
+import com.appmetr.hercules.metadata.CollectionIndexMetadata;
 import com.appmetr.hercules.metadata.EntityMetadata;
 import com.appmetr.hercules.metadata.ForeignKeyMetadata;
 import com.appmetr.hercules.profile.DataOperationsProfile;
@@ -54,25 +56,54 @@ public class IndexManager {
             Object foreignKey = entityManager.getForeignKeyFromEntity(entity, metadata, foreignKeyMetadata.getKeyClass());
 
             Object oldIndexKey = oldEntity == null ? null : entityManager.getForeignKeyFromEntity(oldEntity, metadata, foreignKeyMetadata.getKeyClass());
-            List<K> indexedKeys = new ArrayList<K>(1);
-            indexedKeys.add(primaryKey);
 
             if (foreignKey == null) {
                 if (oldIndexKey != null) {
                     logger.debug(MessageFormat.format("Deleting index: column {0} from {1} by key {2} ", primaryKey, foreignKeyMetadata.getColumnFamily(), oldIndexKey));
-                    deleteRowIndexes(foreignKeyMetadata.getColumnFamily(), oldIndexKey, foreignKeySerializer, indexedKeys, primaryKeySerializer, dataOperationsProfile);
+                    deleteRowIndex(foreignKeyMetadata.getColumnFamily(), oldIndexKey, foreignKeySerializer, primaryKey, primaryKeySerializer, dataOperationsProfile);
                 }
             } else {
 
                 if (oldIndexKey != null && !foreignKey.equals(oldIndexKey)) {
                     logger.debug(MessageFormat.format("Deleting index: column {0} from {1} by key {2} ", primaryKey, foreignKeyMetadata.getColumnFamily(), oldIndexKey));
-                    deleteRowIndexes(foreignKeyMetadata.getColumnFamily(), oldIndexKey, foreignKeySerializer, indexedKeys, primaryKeySerializer, dataOperationsProfile);
+                    deleteRowIndex(foreignKeyMetadata.getColumnFamily(), oldIndexKey, foreignKeySerializer, primaryKey, primaryKeySerializer, dataOperationsProfile);
                 }
 
                 //don't recreate index if it's value equals to old one
                 if (!foreignKey.equals(oldIndexKey)) {
                     insertRowIndex(foreignKeyMetadata.getColumnFamily(), foreignKey, foreignKeySerializer, primaryKey, primaryKeySerializer, dataOperationsProfile);
                 }
+            }
+        }
+
+        for (CollectionIndexMetadata collectionIndexMetadata : metadata.getCollectionIndexes().values()) {
+            CollectionKeysExtractor<E, Object> keyExtractor = collectionIndexMetadata.getKeyExtractor();
+            Serializer<Object> indexKeySerializer = keyExtractor.getKeySerializer();
+
+            Set<Object> keysToAdd = new HashSet<Object>();
+            Set<Object> keysToRemove = new HashSet<Object>();
+
+            for (Object key : keyExtractor.extractKeys(entity)) {
+                keysToAdd.add(key);
+            }
+
+            if (oldEntity != null) {
+                for (Object key : keyExtractor.extractKeys(oldEntity)) {
+                    if (keysToAdd.contains(key)) {
+                        keysToAdd.remove(key);
+                    } else {
+                        keysToRemove.add(key);
+                    }
+                }
+            }
+
+            if (keysToAdd.size() > 0) {
+                insertCollectionIndex(collectionIndexMetadata.getIndexColumnFamily(), keysToAdd, indexKeySerializer, primaryKey, primaryKeySerializer, dataOperationsProfile);
+            }
+
+            if (keysToRemove.size() > 0) {
+                logger.debug(MessageFormat.format("Deleting indexes (during update): column {0} from {1} by keys {2} ", primaryKey, collectionIndexMetadata.getIndexColumnFamily(), keysToRemove));
+                deleteCollectionIndex(collectionIndexMetadata.getIndexColumnFamily(), keysToRemove, indexKeySerializer, primaryKey, primaryKeySerializer, dataOperationsProfile);
             }
         }
     }
@@ -84,24 +115,32 @@ public class IndexManager {
         Serializer<K> primaryKeySerializer = entityManager.getPrimaryKeySerializer(metadata);
 
         for (ForeignKeyMetadata index : metadata.getIndexes().values()) {
-            List<K> indexedId = new ArrayList<K>(1);
-            indexedId.add(primaryKey);
             Object indexKey = entityManager.getForeignKeyFromEntity(entity, metadata, index.getKeyClass());
 
             if (indexKey == null) {
                 continue;
             }
 
-            deleteRowIndexes(index.getColumnFamily(), indexKey, entityManager.getForeignKeySerializer(index), indexedId, primaryKeySerializer, dataOperationsProfile);
+            deleteRowIndex(index.getColumnFamily(), indexKey, entityManager.getForeignKeySerializer(index), primaryKey, primaryKeySerializer, dataOperationsProfile);
         }
 
+        for (CollectionIndexMetadata collectionIndexMetadata : metadata.getCollectionIndexes().values()) {
+            CollectionKeysExtractor<E, Object> keyExtractor = collectionIndexMetadata.getKeyExtractor();
+            Serializer<Object> indexKeySerializer = keyExtractor.getKeySerializer();
+
+            Set<Object> keysToRemove = new HashSet<Object>();
+
+            for (Object key : keyExtractor.extractKeys(entity)) {
+                keysToRemove.add(key);
+            }
+            deleteCollectionIndex(collectionIndexMetadata.getIndexColumnFamily(), keysToRemove, indexKeySerializer, primaryKey, primaryKeySerializer, dataOperationsProfile);
+        }
         //redundant check. Only for reducing number of cassandra operations
         //delete primary key index
         if (metadata.isCreatePrimaryKeyIndex()) {
-            deleteRowIndexes(EntityManager.PRIMARY_KEY_CF_NAME, metadata.getColumnFamily(), StringSerializer.get(), Arrays.asList(primaryKey), primaryKeySerializer, dataOperationsProfile);
+            deleteRowIndex(EntityManager.PRIMARY_KEY_CF_NAME, metadata.getColumnFamily(), StringSerializer.get(), primaryKey, primaryKeySerializer, dataOperationsProfile);
         }
     }
-
 
     private void checkAndCreatePKIndex(final EntityMetadata metadata) {
         String cfName = metadata.getColumnFamily();
@@ -150,6 +189,14 @@ public class IndexManager {
                 fillFKIndex(metadata, index);
             }
         }
+        for (CollectionIndexMetadata collectionIndex : metadata.getCollectionIndexes().values()) {
+            logger.info(MessageFormat.format("Found collection index {0} for {1}", collectionIndex.getIndexColumnFamily(), metadata.getEntityClass().getName()));
+
+            if (dataDriver.checkAndCreateColumnFamily(hercules.getCluster(), hercules.getKeyspaceName(), collectionIndex.getIndexColumnFamily(), ComparatorType.BYTESTYPE)) {
+                logger.info("Creating index table: " + collectionIndex.getIndexColumnFamily());
+                fillCollectionIndex(metadata, collectionIndex);
+            }
+        }
     }
 
     private int fillFKIndex(final EntityMetadata metadata, final ForeignKeyMetadata keyMetadata) {
@@ -186,21 +233,88 @@ public class IndexManager {
         return rowsInserted[0];
     }
 
+    private int fillCollectionIndex(final EntityMetadata metadata, final CollectionIndexMetadata indexMetadata) {
+        final int[] rowsInserted = new int[1];
+        final int[] rowsSkipped = new int[1];
+        final int[] entitiesProcessed = new int[1];
+
+        final Serializer primaryKeySerializer = entityManager.getPrimaryKeySerializer(metadata);
+        final CollectionKeysExtractor keyExtractor = indexMetadata.getKeyExtractor();
+        final Serializer indexKeySerializer = keyExtractor.getKeySerializer();
+
+        new BatchExecutor<Object, Object>(
+                getEntityClassBatchIterator(metadata.getEntityClass()),
+                new BatchProcessor<Object>() {
+                    @Override public void processBatch(List batch) {
+                        for (Object entity : batch) {
+                            Object primaryKey = entityManager.getPrimaryKey(entity, metadata);
+
+                            boolean hasIndex = false;
+                            for (Object key : keyExtractor.extractKeys(entity)) {
+                                logger.debug("Inserting index [" + key + "][" + primaryKey + "].");
+                                insertRowIndex(indexMetadata.getIndexColumnFamily(), key, indexKeySerializer, primaryKey, primaryKeySerializer, null);
+                                hasIndex = true;
+                                rowsInserted[0]++;
+                            }
+
+                            if (!hasIndex) {
+                                rowsSkipped[0]++;
+                            }
+                            entitiesProcessed[0]++;
+                        }
+                    }
+                }
+        ).execute();
+
+        logger.info("Inserted " + rowsInserted[0] + " rows into index table: " + indexMetadata.getIndexColumnFamily() + ". Entities processed: " + entitiesProcessed[0] + " Rows skipped: " + rowsSkipped[0]);
+        return rowsInserted[0];
+    }
+
     private <K, T> void insertRowIndex(String columnFamily, K indexRowKey, Serializer<K> indexRowKeySerializer, T indexValue, Serializer<T> indexValueSerializer, DataOperationsProfile dataOperationsProfile) {
         dataDriver.insert(hercules.getKeyspace(), columnFamily, dataOperationsProfile,
                 new ByteArrayRowSerializer<K, T>(indexRowKeySerializer, indexValueSerializer),
                 indexRowKey, indexValue, new byte[0], DataDriver.EMPTY_TTL);
     }
 
-    private <K, T> void deleteRowIndexes(String columnFamily, K indexRowKey, Serializer<K> indexRowKeySerializer, List<T> columns, Serializer<T> columnSerializer, DataOperationsProfile dataOperationsProfile) {
+    private <K, T> void insertCollectionIndex(String columnFamily, Set<K> indexRowKeys, Serializer<K> indexRowKeySerializer, T indexValue, Serializer<T> indexValueSerializer, DataOperationsProfile dataOperationsProfile) {
+        Map<K, Map<T, Object>> multirowInsert = new HashMap<K, Map<T, Object>>();
+        Map<T, Object> columns = new HashMap<T, Object>();
+        columns.put(indexValue, new byte[0]);
+
+        Map<K, Map<T, Integer>> ttls = new HashMap<K, Map<T, Integer>>();
+        Map<T, Integer> emptyTTL = new HashMap<T, Integer>();
+        emptyTTL.put(indexValue, DataDriver.EMPTY_TTL);
+
+        for (K key : indexRowKeys) {
+            multirowInsert.put(key, new HashMap<T, Object>(columns));
+            ttls.put(key, new HashMap<T, Integer>(emptyTTL));
+        }
+
+        dataDriver.insert(hercules.getKeyspace(), columnFamily, dataOperationsProfile,
+                new ByteArrayRowSerializer<K, T>(indexRowKeySerializer, indexValueSerializer), multirowInsert, ttls);
+    }
+
+    private <K, T> void deleteRowIndex(String columnFamily, K indexRowKey, Serializer<K> indexRowKeySerializer, T column, Serializer<T> columnSerializer, DataOperationsProfile dataOperationsProfile) {
         dataDriver.delete(hercules.getKeyspace(), columnFamily, dataOperationsProfile,
                 new ByteArrayRowSerializer<K, T>(indexRowKeySerializer, columnSerializer),
-                indexRowKey, columns);
+                indexRowKey, Arrays.<T>asList(column));
+    }
+
+    private <K, T> void deleteCollectionIndex(String columnFamily, Set<K> indexRowKeys, Serializer<K> indexRowKeySerializer, T column, Serializer<T> columnSerializer, DataOperationsProfile dataOperationsProfile) {
+        Map<K, Iterable<T>> multirowDelete = new HashMap<K, Iterable<T>>();
+
+        for (K key : indexRowKeys) {
+            multirowDelete.put(key, Arrays.<T>asList(column));
+        }
+
+        dataDriver.delete(hercules.getKeyspace(), columnFamily, dataOperationsProfile,
+                new ByteArrayRowSerializer<K, T>(indexRowKeySerializer, columnSerializer), multirowDelete);
     }
 
     private BatchIterator<Object, Object> getEntityClassBatchIterator(final Class clazz) {
         return new TupleBatchIterator<Object, Object>(null, null) {
-            @Override protected Tuple2 getRangeTuple(Object from, Object to, int batchSize, DataOperationsProfile dataOperationsProfile) {
+            @Override
+            protected Tuple2 getRangeTuple(Object from, Object to, int batchSize, DataOperationsProfile dataOperationsProfile) {
                 return entityManager.getRange(clazz, from, to, batchSize, dataOperationsProfile);
             }
 

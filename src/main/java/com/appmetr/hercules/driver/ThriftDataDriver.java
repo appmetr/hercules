@@ -46,8 +46,14 @@ public class ThriftDataDriver implements DataDriver {
     @Inject private Hercules hercules;
 
     @Override public Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections) {
+        return getOrCreateCluster(clusterName, host, maxActiveConnections, -1, 0);
+    }
+
+    @Override public Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections, long maxConnectTimeMillis, int cassandraThriftSocketTimeout) {
         CassandraHostConfigurator configurator = new CassandraHostConfigurator(host);
         configurator.setMaxActive(maxActiveConnections);
+        configurator.setMaxConnectTimeMillis(maxConnectTimeMillis);
+        configurator.setCassandraThriftSocketTimeout(cassandraThriftSocketTimeout);
 
         return HFactory.getOrCreateCluster(clusterName, configurator);
     }
@@ -441,10 +447,10 @@ public class ThriftDataDriver implements DataDriver {
             }
         }
 
-        executeMutator(columnFamily, dataOperationsProfile, mutator, serializedDataSize);
+        executeInsertionMutator(columnFamily, dataOperationsProfile, mutator, serializedDataSize);
     }
 
-    private void executeMutator(String columnFamily, DataOperationsProfile dataOperationsProfile, Mutator<ByteBuffer> mutator, int serializedDataSize) {
+    private void executeInsertionMutator(String columnFamily, DataOperationsProfile dataOperationsProfile, Mutator<ByteBuffer> mutator, int serializedDataSize) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Insert " + columnFamily);
         try {
             mutator.execute();
@@ -458,13 +464,12 @@ public class ThriftDataDriver implements DataDriver {
         }
     }
 
-    @Override
-    public <R, T> void delete(Keyspace keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R rowKey) {
-        Mutator<R> mutator = HFactory.createMutator(keyspace, rowSerializer.getRowKeySerializer());
 
+    private <R> void executeDeletionMutator(String columnFamily, DataOperationsProfile dataOperationsProfile, Mutator<R> mutator) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Delete " + columnFamily);
+
         try {
-            mutator.delete(rowKey, columnFamily, null, rowSerializer.getTopKeySerializer());
+            mutator.execute();
         } finally {
             long time = monitor.stop();
             if (dataOperationsProfile != null) {
@@ -472,6 +477,15 @@ public class ThriftDataDriver implements DataDriver {
                 dataOperationsProfile.dbQueries++;
             }
         }
+    }
+
+
+    @Override
+    public <R, T> void delete(Keyspace keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R rowKey) {
+        Mutator<R> mutator = HFactory.createMutator(keyspace, rowSerializer.getRowKeySerializer());
+        mutator.addDeletion(rowKey, columnFamily);
+
+        executeDeletionMutator(columnFamily, dataOperationsProfile, mutator);
     }
 
     @Override
@@ -485,17 +499,28 @@ public class ThriftDataDriver implements DataDriver {
         for (T topKey : topKeys) {
             mutator.addDeletion(serializedRowKey, columnFamily, topKey, rowSerializer.getTopKeySerializer());
         }
-        StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Delete " + columnFamily);
 
-        try {
-            mutator.execute();
-        } finally {
-            long time = monitor.stop();
-            if (dataOperationsProfile != null) {
-                dataOperationsProfile.ms += time;
-                dataOperationsProfile.dbQueries++;
+        executeDeletionMutator(columnFamily, dataOperationsProfile, mutator);
+    }
+
+    @Override
+    public <R, T> void delete(Keyspace keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, Map<R, Iterable<T>> values) {
+        Serializer<R> rowKeySerializer = rowSerializer.getRowKeySerializer();
+
+        Mutator<ByteBuffer> mutator = HFactory.createMutator(keyspace, ByteBufferSerializer.get());
+
+        for (R rowKey : values.keySet()) {
+            ByteBuffer serializedRowKey = rowKeySerializer.toByteBuffer(rowKey);
+            if (serializedRowKey == null) {
+                continue;
+            }
+
+            for (T topKey : values.get(rowKey)) {
+                mutator.addDeletion(serializedRowKey, columnFamily, topKey, rowSerializer.getTopKeySerializer());
             }
         }
+
+        executeDeletionMutator(columnFamily, dataOperationsProfile, mutator);
     }
 
     private <R, T> HerculesMultiQueryResult<R, T> buildQueryResult(DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, Rows<R, T, ByteBuffer> rows) {

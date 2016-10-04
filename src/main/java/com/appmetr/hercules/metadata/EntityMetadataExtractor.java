@@ -1,17 +1,38 @@
 package com.appmetr.hercules.metadata;
 
+import com.appmetr.hercules.HerculesConfig;
 import com.appmetr.hercules.annotations.*;
+import com.appmetr.hercules.driver.DataDriver;
+import com.appmetr.hercules.keys.CollectionKeysExtractor;
+import com.appmetr.hercules.keys.EntityCollectionKeyExtractor;
 import com.appmetr.hercules.keys.ForeignKey;
+import com.appmetr.hercules.keys.SerializableKeyCollectionKeyExtractor;
+import com.appmetr.hercules.manager.EntityManager;
 import com.appmetr.hercules.serializers.AbstractHerculesSerializer;
+import com.appmetr.hercules.serializers.SerializerProvider;
+import com.google.common.base.Strings;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Clients of this class should call only extract() method.
  * Other methods visible(public) only for testing purposes.
  */
 public class EntityMetadataExtractor {
+
+    @Inject HerculesConfig herculesConfig;
+    @Inject EntityManager em;
+    @Inject private DataDriver dataDriver;
+    @Inject private SerializerProvider serializerProvider;
+    @Inject Injector injector;
+
+
     /**
      * Use this method to extract metadata from entity class.
      *
@@ -24,13 +45,14 @@ public class EntityMetadataExtractor {
         EntityAnnotationsValidator.validateThatOnlyOneIdPresent(clazz);
         EntityAnnotationsValidator.validateIndexes(clazz);
 
-        parseClassLevelMetadata(clazz, metadata);
-        parseFieldLevelMetadata(clazz, metadata);
+        Set<String> indexColumnFamilies = new HashSet<String>();
+        parseClassLevelMetadata(clazz, metadata, indexColumnFamilies);
+        parseFieldLevelMetadata(clazz, metadata, indexColumnFamilies);
 
         return metadata;
     }
 
-    private void parseClassLevelMetadata(Class<?> clazz, EntityMetadata metadata) {
+    private void parseClassLevelMetadata(Class<?> clazz, EntityMetadata metadata, Set<String> indexColumnFamilies) {
         Entity entityAnnotation = clazz.getAnnotation(Entity.class);
         metadata.setColumnFamily(entityAnnotation.columnFamily().length() == 0 ? clazz.getSimpleName() : entityAnnotation.columnFamily());
         metadata.setEntityClass(clazz);
@@ -66,28 +88,34 @@ public class EntityMetadataExtractor {
         //Parse indexes metadata
         if (clazz.isAnnotationPresent(Index.class)) {
             Index indexAnnotation = clazz.getAnnotation(Index.class);
-            parseFKMetadata(indexAnnotation, metadata);
+            indexColumnFamilies.add(parseFKMetadata(indexAnnotation, metadata));
         }
 
         if (clazz.isAnnotationPresent(Indexes.class)) {
             Indexes indexesAnnotation = clazz.getAnnotation(Indexes.class);
             Index[] indexAnnotations = indexesAnnotation.value();
             for (Index index : indexAnnotations) {
-                parseFKMetadata(index, metadata);
+                String addedIndexName = parseFKMetadata(index, metadata);
+                if (indexColumnFamilies.contains(addedIndexName)) {
+                    throw new RuntimeException("Index configuration problem for class " + clazz.getName() + ". Several indexes with the same name present. Name = " + addedIndexName);
+                }
+                indexColumnFamilies.add(addedIndexName);
             }
         }
     }
 
-    private void parseFieldLevelMetadata(Class<?> clazz, EntityMetadata metadata) {
+    private void parseFieldLevelMetadata(Class<?> clazz, EntityMetadata metadata, Set<String> indexColumnFamilies) {
         for (Field field : clazz.getDeclaredFields()) {
 
-            if (field.isAnnotationPresent(Transient.class)) continue;
             if (Modifier.isStatic(field.getModifiers())) continue;
 
             field.setAccessible(true);
 
             //primary key
             if (field.isAnnotationPresent(Id.class)) {
+                if (field.isAnnotationPresent(Transient.class)) {
+                    throw new RuntimeException("field annotated with @Id cannot be @Transient. field: [" + field.getName() + "] in class: " + clazz.getName());
+                }
                 if (field.isAnnotationPresent(GeneratedGUID.class)) {
                     metadata.setPrimaryKeyGenerated(true);
                 }
@@ -107,16 +135,28 @@ public class EntityMetadataExtractor {
 
                 metadata.setPrimaryKeyMetadata(primaryKeyMetadata);
             } else {
-                String columnName = getColumnName(field);
-                metadata.setColumnClass(columnName, field.getType());
-                metadata.setFieldColumn(field, columnName);
 
-                if (field.isAnnotationPresent(Serializer.class)) {
-                    metadata.setColumnSerializer(columnName, field.getAnnotation(Serializer.class).value());
+                if (!field.isAnnotationPresent(Transient.class)) {
+                    // create column only for non Transient fields
+                    String columnName = getColumnName(field);
+                    metadata.setColumnClass(columnName, field.getType());
+                    metadata.setFieldColumn(field, columnName);
+
+                    if (field.isAnnotationPresent(Serializer.class)) {
+                        metadata.setColumnSerializer(columnName, field.getAnnotation(Serializer.class).value());
+                    }
+
+                    if (field.isAnnotationPresent(NotNullField.class)) {
+                        metadata.addNotNullColumn(columnName);
+                    }
                 }
 
-                if (field.isAnnotationPresent(NotNullField.class)) {
-                    metadata.addNotNullColumn(columnName);
+                if (field.isAnnotationPresent(IndexedCollection.class)) {
+                    String addedIndexCF = parseCollectionIndexMetadata(field, field.getAnnotation(IndexedCollection.class), metadata);
+                    if (indexColumnFamilies.contains(addedIndexCF)) {
+                        throw new RuntimeException("Incorrect @IndexedCollection usage for field [" + field.getName() + "] of class " + metadata.getEntityClass().getName() + " Several indexes with the same name present. Name=" + addedIndexCF);
+                    }
+                    indexColumnFamilies.add(addedIndexCF);
                 }
             }
         }
@@ -126,11 +166,12 @@ public class EntityMetadataExtractor {
         }
     }
 
-    private void parseFKMetadata(Index indexAnnotation, EntityMetadata metadata) {
+    private String parseFKMetadata(Index indexAnnotation, EntityMetadata metadata) {
         Class<? extends ForeignKey> keyClass = indexAnnotation.keyClass();
         ForeignKeyMetadata keyMetadata = new ForeignKeyMetadata();
 
-        keyMetadata.setColumnFamily(metadata.getColumnFamily() + "_" + keyClass.getSimpleName());
+        String cfName = metadata.getColumnFamily() + "_" + keyClass.getSimpleName();
+        keyMetadata.setColumnFamily(cfName);
         keyMetadata.setKeyClass(keyClass);
 
         Field[] declaredFields = keyClass.getDeclaredFields();
@@ -151,6 +192,72 @@ public class EntityMetadataExtractor {
         }
 
         metadata.addIndex(keyClass, keyMetadata);
+        return cfName;
+    }
+
+    private String parseCollectionIndexMetadata(Field field, IndexedCollection indexAnnotation, EntityMetadata metadata) {
+        CollectionIndexMetadata indexMetadata = new CollectionIndexMetadata();
+        Class<?> itemClass = null;
+        if (!Object.class.equals(indexAnnotation.itemClass())) {
+            itemClass = indexAnnotation.itemClass();
+        }
+        Class<? extends AbstractHerculesSerializer> serializerClass = null;
+        if (!AbstractHerculesSerializer.class.equals(indexAnnotation.serializer())) {
+            serializerClass = indexAnnotation.serializer();
+        }
+        Class<? extends CollectionKeysExtractor> keyExtractorClass = null;
+        if (!CollectionKeysExtractor.class.equals(indexAnnotation.keyExtractorClass())) {
+            keyExtractorClass = indexAnnotation.keyExtractorClass();
+        }
+        if (keyExtractorClass != null) {
+            if (serializerClass != null || itemClass != null) {
+                throw new RuntimeException("Incorrect @IndexedCollection usage for field [" + field.getName() + "] of class " + metadata.getEntityClass().getName()
+                        + ". If keyExtractorClass is specified, serializer and itemClass shouldn't be set");
+            }
+        } else {
+            if (itemClass == null) {
+                throw new RuntimeException("Incorrect @IndexedCollection usage for field [" + field.getName() + "] of class " + metadata.getEntityClass().getName()
+                        + ". itemClass or keyExtractorClass should be specified");
+            }
+        }
+
+        CollectionKeysExtractor keysExtractor;
+        if (keyExtractorClass != null) {
+            keysExtractor = injector.getInstance(keyExtractorClass);
+        } else {
+            if (!Collection.class.isAssignableFrom(field.getType())) {
+                throw new RuntimeException("Incorrect @IndexedCollection usage for field [" + field.getName() + "] of class " + metadata.getEntityClass().getName()
+                        + ". Indexed field should be a collection");
+            }
+
+            if (serializerClass != null) {
+                //collection of objects with special serializer
+                keysExtractor = new SerializableKeyCollectionKeyExtractor(field, serializerProvider.getSerializer(serializerClass, itemClass));
+            } else {
+                if (herculesConfig.getEntityClasses().contains(itemClass)) {
+                    //collection of hercules entities
+                    keysExtractor = new EntityCollectionKeyExtractor(field, itemClass, em);
+                } else if (itemClass.getAnnotation(Serializer.class) != null) {
+                    //collection of primary keys with serializers
+                    Serializer s = itemClass.getAnnotation(Serializer.class);
+                    keysExtractor = new SerializableKeyCollectionKeyExtractor(field, serializerProvider.getSerializer(s.value(), itemClass));
+                } else {
+                    //collection of well known objects with hector serializers
+                    keysExtractor = new SerializableKeyCollectionKeyExtractor(field, dataDriver.getSerializerForClass(itemClass));
+                }
+            }
+        }
+        indexMetadata.setKeyExtractor(keysExtractor);
+
+        indexMetadata.setIndexedField(field);
+        String name = field.getName();
+        if (!Strings.isNullOrEmpty(indexAnnotation.name())) {
+            name = indexAnnotation.name();
+        }
+        name = metadata.getColumnFamily() + "_" + name;
+        indexMetadata.setIndexColumnFamily(name);
+        metadata.getCollectionIndexes().put(field.getName(), indexMetadata);
+        return name;
     }
 
     private String getColumnName(Field field) {

@@ -1,5 +1,6 @@
 package com.appmetr.hercules;
 
+import com.appmetr.hercules.model.EntityWithCollection;
 import com.appmetr.hercules.model.TestEntity;
 import com.appmetr.hercules.model.TestEntityWithTTL;
 import com.appmetr.hercules.model.TestWideEntity;
@@ -19,6 +20,7 @@ public abstract class TestHercules {
 
         //Entity
         classes.add(TestEntity.class);
+        classes.add(EntityWithCollection.class);
         classes.add(TestEntityWithTTL.class);
         classes.add(TestWideEntity.class);
 

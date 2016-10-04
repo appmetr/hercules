@@ -6,7 +6,7 @@
     <groupId>com.appmetr</groupId>
     <artifactId>hercules</artifactId>
     <packaging>jar</packaging>
-    <version>0.4.19-SNAPSHOT</version>
+    <version>0.5.4-SNAPSHOT</version>
     <name>Hercules</name>
 
     <repositories>
@@ -48,7 +48,7 @@
         <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
-            <version>2.2</version>
+            <version>2.5</version>
         </dependency>
 
         <!-- Hector -->

@@ -14,6 +14,8 @@ public class HerculesConfig {
     private int maxActiveConnections;
     private int replicationFactor;
     private Boolean schemaModificationEnabled;
+    private long maxConnectTimeMillis = -1;
+    private int cassandraThriftSocketTimeout;
 
     /* Fields */
     private Set<Class> entityClasses;
@@ -100,5 +102,21 @@ public class HerculesConfig {
 
     public void setWideEntityClasses(Set<Class> wideEntityClasses) {
         this.wideEntityClasses = wideEntityClasses;
+    }
+
+    public long getMaxConnectTimeMillis() {
+        return maxConnectTimeMillis;
+    }
+
+    public void setMaxConnectTimeMillis(long maxConnectTimeMillis) {
+        this.maxConnectTimeMillis = maxConnectTimeMillis;
+    }
+
+    public int getCassandraThriftSocketTimeout() {
+        return cassandraThriftSocketTimeout;
+    }
+
+    public void setCassandraThriftSocketTimeout(int cassandraThriftSocketTimeout) {
+        this.cassandraThriftSocketTimeout = cassandraThriftSocketTimeout;
     }
 }

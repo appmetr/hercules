@@ -57,8 +57,8 @@ public class Hercules {
     private Map<Class, EntityMetadata> entityClassMetadataCache = new HashMap<Class, EntityMetadata>();
     private Map<Class, WideEntityMetadata> wideEntityClassMetadataCache = new HashMap<Class, WideEntityMetadata>();
 
-    EntityMetadataExtractor metadataExtractor = new EntityMetadataExtractor();
-    WideEntityMetadataExtractor wideMetadataExtractor = new WideEntityMetadataExtractor();
+    @Inject EntityMetadataExtractor metadataExtractor;
+    @Inject WideEntityMetadataExtractor wideMetadataExtractor;
 
     private Cluster cluster;
     private Keyspace keyspace;
@@ -73,7 +73,7 @@ public class Hercules {
 
 
     public void init() {
-        cluster = dataDriver.getOrCreateCluster(config.getClusterName(), config.getCassandraHost(), config.getMaxActiveConnections());
+        cluster = dataDriver.getOrCreateCluster(config.getClusterName(), config.getCassandraHost(), config.getMaxActiveConnections(), config.getMaxConnectTimeMillis(), config.getCassandraThriftSocketTimeout());
         keyspace = dataDriver.getOrCreateKeyspace(config.getKeyspaceName(), config.getReplicationFactor(), cluster);
 
         initEntities();
@@ -130,6 +130,9 @@ public class Hercules {
 
             checkAndCreateColumnFamily(metadata.getColumnFamily(), metadata.getComparatorType());
 
+        }
+        //We should have extracted metadata before create indexes
+        for (EntityMetadata metadata : entityClassMetadataCache.values()) {
             indexManager.checkAndCreateEntityIndexes(metadata);
         }
     }
