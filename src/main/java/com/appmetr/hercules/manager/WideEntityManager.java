@@ -4,6 +4,7 @@ import com.appmetr.hercules.Hercules;
 import com.appmetr.hercules.HerculesMonitoringGroup;
 import com.appmetr.hercules.annotations.TopKey;
 import com.appmetr.hercules.driver.DataDriver;
+import com.appmetr.hercules.driver.HerculesMultiQueryResult;
 import com.appmetr.hercules.driver.HerculesQueryResult;
 import com.appmetr.hercules.driver.serializer.RowSerializer;
 import com.appmetr.hercules.driver.serializer.UniversalRowSerializer;
@@ -75,7 +76,9 @@ public class WideEntityManager {
             WideEntityMetadata metadata = getMetadata(clazz);
 
             Map<T, Object> totalResults = new LinkedHashMap<T, Object>();
-            List<SliceDataSpecificatorByCF<T>> partQueries = this.<R, T>getPartitionProvider(metadata).getPartitionedQueries(rowKey, sliceDataSpecificator);
+            final PartitionProvider<R, T> partitionProvider = this.getPartitionProvider(metadata);
+
+            List<SliceDataSpecificatorByCF<T>> partQueries = partitionProvider.getPartitionedQueries(rowKey, sliceDataSpecificator);
 
             RowSerializer<R, T> rowSerializer = this.getRowSerializerForEntity(metadata);
 
@@ -105,12 +108,15 @@ public class WideEntityManager {
 
             } else if (sliceDataSpecificator.getType() == SliceDataSpecificator.SliceDataSpecificatorType.COLUMNS) {
                 for (SliceDataSpecificatorByCF<T> kv : partQueries) {
-                    HerculesQueryResult<T> result = dataDriver.getSlice(
-                            hercules.getKeyspace(), metadata.getColumnFamily() + kv.getPartitionName(), dataOperationsProfile, rowSerializer, rowKey,
+                    final List<R> partitionedKeys = partitionProvider.getPartitionedRowKeys(rowKey, sliceDataSpecificator);
+                    final HerculesMultiQueryResult<R, T> result = dataDriver.getSlice(
+                            hercules.getKeyspace(), metadata.getColumnFamily() + kv.getPartitionName(), dataOperationsProfile, rowSerializer, partitionedKeys,
                             kv.getSliceDataSpecificator());
 
                     if (result.hasResult()) {
-                        totalResults.putAll(result.getEntries());
+                        for (Map.Entry<R, LinkedHashMap<T, Object>> mapEntry : result.getEntries().entrySet()) {
+                            totalResults.putAll(mapEntry.getValue());
+                        }
                     }
                 }
             } else {
@@ -219,8 +225,10 @@ public class WideEntityManager {
                 value = prePersistResult;
             }
 
-            dataDriver.insert(hercules.getKeyspace(), getCFName(metadata, rowKey, topKey), dataOperationsProfile, getRowSerializerForEntity(metadata),
-                    rowKey, topKey, value, ttl);
+            dataDriver.insert(hercules.getKeyspace(), getCFName(metadata, rowKey, topKey),
+                    dataOperationsProfile, getRowSerializerForEntity(metadata),
+                    getPartitionedKey(metadata, rowKey, topKey),
+                    topKey, value, ttl);
 
             listenerInvocationHelper.invokePostPersistListener(metadata.getListenerMetadata(), value);
         } finally {
@@ -534,6 +542,13 @@ public class WideEntityManager {
     private <R, T> String getCFName(WideEntityMetadata metadata, R rowKey, T topKey) {
         return metadata.getColumnFamily() + getPartitionProvider(metadata).getPartition(rowKey, topKey);
     }
+
+    private <R, T> R getPartitionedKey(WideEntityMetadata metadata, R rowKey, T topKey) {
+        final PartitionProvider<Object, Object> partitionProvider = getPartitionProvider(metadata);
+        return (R)partitionProvider.getPartitionedRowKey(rowKey,topKey);
+    }
+
+
 
     private void countEntities(DataOperationsProfile dataOperationsProfile, Collection entries) {
         if (dataOperationsProfile != null) {

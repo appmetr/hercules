@@ -9,16 +9,44 @@ import org.joda.time.format.DateTimeFormatter;
 
 import java.util.*;
 
-public class DatePartiotionProvider<T extends DatedColumn> extends TopKeyPartiotionProvider<T> {
+public class DatePartitionProvider<T extends DatedColumn> extends TopKeyPartiotionProvider<T> {
 
     private DatePartsConfig partsConfig;
 
-    public DatePartiotionProvider(DatePartsConfig partsConfig) {
+    public DatePartitionProvider(DatePartsConfig partsConfig) {
         this.partsConfig = partsConfig;
     }
 
     @Override public String getPartition(T topKey) {
         return getDatePartition(topKey.getDate(), partsConfig);
+    }
+
+    @Override public List<Object> getPartitionedRowKeys(Object rowKey, SliceDataSpecificator<T> sliceDataSpecificator) {
+
+        if(rowKey instanceof DatePartitionedKey){
+            final DatePartitionedKey datePartitionedKey = (DatePartitionedKey) rowKey;
+            final LinkedList<Object> keys = new LinkedList<Object>();
+            final DateTime fromDateTime = new DateTime(sliceDataSpecificator.getLowEnd().getDate());
+            final DateTime toDateTime = new DateTime(sliceDataSpecificator.getHighEnd().getDate());
+
+            DateTime curDate = new DateTime(fromDateTime);
+            while (curDate.getMillis() <= toDateTime.getMillis()){
+                final DateTime ceilDateToPeriod = ceilDateToPeriod(curDate, partsConfig.getPartsField(), 1);
+                keys.add(datePartitionedKey.copyWithPartitionKey(ceilDateToPeriod.getMillis()));
+                curDate = curDate.plusDays(1);
+            }
+            return keys;
+        }
+        return super.getPartitionedRowKeys(rowKey, sliceDataSpecificator);
+    }
+
+    @Override public Object getPartitionedRowKey(Object rowKey, T topKey) {
+        if(rowKey instanceof DatePartitionedKey){
+            final DatePartitionedKey datePartitionedKey = (DatePartitionedKey) rowKey;
+            final DateTime date = ceilDateToPeriod(new DateTime(topKey.getDate()),partsConfig.getPartsField(),1);
+            return datePartitionedKey.copyWithPartitionKey(date.getMillis());
+        }
+        return super.getPartitionedRowKey(rowKey, topKey);
     }
 
     @Override
