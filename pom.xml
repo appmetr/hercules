@@ -6,7 +6,7 @@
     <groupId>com.appmetr</groupId>
     <artifactId>hercules</artifactId>
     <packaging>jar</packaging>
-    <version>0.5.4-SNAPSHOT</version>
+    <version>0.5.4</version>
     <name>Hercules</name>
 
     <repositories>
@@ -56,6 +56,17 @@
             <groupId>org.hectorclient</groupId>
             <artifactId>hector-core</artifactId>
             <version>1.1-4</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.thrift</groupId>
+                    <artifactId>libthrift</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.thrift</groupId>
+            <artifactId>libthrift</artifactId>
+            <version>0.9.3</version>
         </dependency>
 
         <!-- Monitoring -->
