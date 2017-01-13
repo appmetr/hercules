@@ -482,8 +482,9 @@ public class EntityManager {
                 countEntities(dataOperationsProfile, queryResult.getEntries());
 
                 //filtering using real entity fk
-                Set<K> primaryKeys = new HashSet<K>(queryResult.getEntries().keySet());
+                Set<K> primaryKeys = queryResult.getEntries().keySet();
                 if (skipKeys != null && !skipKeys.isEmpty()) {
+                    primaryKeys = new HashSet<K>(primaryKeys);
                     primaryKeys.removeAll(skipKeys);
                 }
                 List<E> candidates = get(clazz, primaryKeys, dataOperationsProfile);
