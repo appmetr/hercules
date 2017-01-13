@@ -12,6 +12,7 @@ import com.appmetr.hercules.profile.DataOperationsProfile;
 import com.appmetr.hercules.utils.Tuple2;
 
 import java.util.List;
+import java.util.Set;
 
 public abstract class AbstractDAO<E, K> {
 
@@ -85,6 +86,10 @@ public abstract class AbstractDAO<E, K> {
 
     public List<E> getByFK(ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
         return getHercules().getEntityManager().getByFK(entityClass, foreignKey, dataOperationsProfile);
+    }
+
+    public List<E> getByFK(ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile, Set<K> skipKeys) {
+        return getHercules().getEntityManager().getByFK(entityClass, foreignKey, dataOperationsProfile, skipKeys);
     }
 
     public E getSingleByFK(ForeignKey foreignKey) {
