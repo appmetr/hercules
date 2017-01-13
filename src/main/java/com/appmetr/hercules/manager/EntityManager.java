@@ -163,11 +163,15 @@ public class EntityManager {
     }
 
     public <E> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
-        return getByFK(clazz, foreignKey, null, dataOperationsProfile);
+        return getByFK(clazz, foreignKey, null, dataOperationsProfile, null);
+    }
+
+    public <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile, Set<K> skipKeys) {
+        return getByFK(clazz, foreignKey, null, dataOperationsProfile, skipKeys);
     }
 
     public <E> E getSingleByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
-        List<E> entites = getByFK(clazz, foreignKey, 1, dataOperationsProfile);
+        List<E> entites = getByFK(clazz, foreignKey, 1, dataOperationsProfile, null);
 
         return entites.size() > 0 ? entites.get(0) : null;
     }
@@ -462,7 +466,8 @@ public class EntityManager {
         }
     }
 
-    private <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Integer count, DataOperationsProfile dataOperationsProfile) {
+    private <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Integer count, DataOperationsProfile dataOperationsProfile,
+                                   Set<K> skipKeys) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get list by FK " + clazz.getSimpleName());
 
         try {
@@ -477,7 +482,12 @@ public class EntityManager {
                 countEntities(dataOperationsProfile, queryResult.getEntries());
 
                 //filtering using real entity fk
-                List<E> candidates = get(clazz, queryResult.getEntries().keySet(), dataOperationsProfile);
+                Set<K> primaryKeys = queryResult.getEntries().keySet();
+                if (skipKeys != null && !skipKeys.isEmpty()) {
+                    primaryKeys = new HashSet<K>(primaryKeys);
+                    primaryKeys.removeAll(skipKeys);
+                }
+                List<E> candidates = get(clazz, primaryKeys, dataOperationsProfile);
                 List<E> entities = new ArrayList<E>(candidates.size());
                 for (E candidate : candidates) {
                     ForeignKey candidateKey = getForeignKeyFromEntity(candidate, metadata, foreignKey.getClass());
