@@ -163,15 +163,15 @@ public class EntityManager {
     }
 
     public <E> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
-        return getByFK(clazz, foreignKey, null, dataOperationsProfile, null);
+        return getByFK(clazz, foreignKey, null, null, dataOperationsProfile);
     }
 
-    public <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile, Set<K> skipKeys) {
-        return getByFK(clazz, foreignKey, null, dataOperationsProfile, skipKeys);
+    public <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Set<K> skipKeys, DataOperationsProfile dataOperationsProfile) {
+        return getByFK(clazz, foreignKey, null, skipKeys, dataOperationsProfile);
     }
 
     public <E> E getSingleByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
-        List<E> entites = getByFK(clazz, foreignKey, 1, dataOperationsProfile, null);
+        List<E> entites = getByFK(clazz, foreignKey, 1, null, dataOperationsProfile);
 
         return entites.size() > 0 ? entites.get(0) : null;
     }
@@ -466,8 +466,8 @@ public class EntityManager {
         }
     }
 
-    private <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Integer count, DataOperationsProfile dataOperationsProfile,
-                                   Set<K> skipKeys) {
+    private <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Integer count, Set<K> skipKeys,
+                                   DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get list by FK " + clazz.getSimpleName());
 
         try {
