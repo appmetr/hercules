@@ -73,7 +73,9 @@ public class Hercules {
 
 
     public void init() {
-        cluster = dataDriver.getOrCreateCluster(config.getClusterName(), config.getCassandraHost(), config.getMaxActiveConnections(), config.getMaxConnectTimeMillis(), config.getCassandraThriftSocketTimeout());
+        cluster = dataDriver.getOrCreateCluster(config.getClusterName(), config.getCassandraHost(),
+                config.getMaxActiveConnections(), config.getMaxConnectTimeMillis(),
+                config.getCassandraThriftSocketTimeout(), config.getMaxWaitTimeWhenExhausted());
         keyspace = dataDriver.getOrCreateKeyspace(config.getKeyspaceName(), config.getReplicationFactor(), cluster);
 
         initEntities();
