@@ -22,6 +22,8 @@ public interface DataDriver {
 
     Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections, long maxConnectTimeMillis, int cassandraThriftSocketTimeout);
 
+    Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections, long maxConnectTimeMillis, int cassandraThriftSocketTimeout, long maxWaitTimeWhenExhausted);
+
     void shutdownCluster(Cluster cluster);
 
     Keyspace getOrCreateKeyspace(String keyspaceName, int replicationFactor, Cluster cluster);

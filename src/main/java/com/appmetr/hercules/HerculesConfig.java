@@ -16,6 +16,7 @@ public class HerculesConfig {
     private Boolean schemaModificationEnabled;
     private long maxConnectTimeMillis = -1;
     private int cassandraThriftSocketTimeout;
+    private long maxWaitTimeWhenExhausted;
 
     /* Fields */
     private Set<Class> entityClasses;
@@ -118,5 +119,13 @@ public class HerculesConfig {
 
     public void setCassandraThriftSocketTimeout(int cassandraThriftSocketTimeout) {
         this.cassandraThriftSocketTimeout = cassandraThriftSocketTimeout;
+    }
+
+    public long getMaxWaitTimeWhenExhausted() {
+        return maxWaitTimeWhenExhausted;
+    }
+
+    public void setMaxWaitTimeWhenExhausted(long maxWaitTimeWhenExhausted) {
+        this.maxWaitTimeWhenExhausted = maxWaitTimeWhenExhausted;
     }
 }

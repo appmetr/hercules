@@ -58,6 +58,16 @@ public class ThriftDataDriver implements DataDriver {
         return HFactory.getOrCreateCluster(clusterName, configurator);
     }
 
+    @Override public Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections, long maxConnectTimeMillis, int cassandraThriftSocketTimeout, long maxWaitTimeWhenExhausted) {
+        CassandraHostConfigurator configurator = new CassandraHostConfigurator(host);
+        configurator.setMaxActive(maxActiveConnections);
+        configurator.setMaxConnectTimeMillis(maxConnectTimeMillis);
+        configurator.setCassandraThriftSocketTimeout(cassandraThriftSocketTimeout);
+        configurator.setMaxWaitTimeWhenExhausted(maxWaitTimeWhenExhausted);
+
+        return HFactory.getOrCreateCluster(clusterName, configurator);
+    }
+
     @Override public void shutdownCluster(Cluster cluster) {
         HFactory.shutdownCluster(cluster);
     }
