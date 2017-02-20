@@ -88,6 +88,14 @@ public abstract class AbstractDAO<E, K> {
         return getHercules().getEntityManager().getByFK(entityClass, foreignKey, dataOperationsProfile);
     }
 
+    public List<E> getByFK(ForeignKey foreignKey, boolean reverse, Integer count) {
+        return getHercules().getEntityManager().getByFK(entityClass, foreignKey, reverse, count, null);
+    }
+
+    public List<E> getByFK(ForeignKey foreignKey, boolean reverse, Integer count, DataOperationsProfile dataOperationsProfile) {
+        return getHercules().getEntityManager().getByFK(entityClass, foreignKey, reverse, count, dataOperationsProfile);
+    }
+
     public List<E> getByFK(ForeignKey foreignKey, Set<K> skipKeys, DataOperationsProfile dataOperationsProfile) {
         return getHercules().getEntityManager().getByFK(entityClass, foreignKey, skipKeys, dataOperationsProfile);
     }

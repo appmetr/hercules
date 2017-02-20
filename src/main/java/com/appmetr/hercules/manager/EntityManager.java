@@ -163,15 +163,21 @@ public class EntityManager {
     }
 
     public <E> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
-        return getByFK(clazz, foreignKey, null, null, dataOperationsProfile);
+        return getByFK(clazz, foreignKey, false, null, null, dataOperationsProfile);
     }
 
     public <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Set<K> skipKeys, DataOperationsProfile dataOperationsProfile) {
-        return getByFK(clazz, foreignKey, null, skipKeys, dataOperationsProfile);
+        return getByFK(clazz, foreignKey, false, null, skipKeys, dataOperationsProfile);
     }
 
+
+    public <E> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, boolean reverse, Integer count, DataOperationsProfile dataOperationsProfile) {
+        return getByFK(clazz, foreignKey, reverse, count, null, dataOperationsProfile);
+    }
+
+
     public <E> E getSingleByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
-        List<E> entites = getByFK(clazz, foreignKey, 1, null, dataOperationsProfile);
+        List<E> entites = getByFK(clazz, foreignKey, false, 1, null, dataOperationsProfile);
 
         return entites.size() > 0 ? entites.get(0) : null;
     }
@@ -466,7 +472,7 @@ public class EntityManager {
         }
     }
 
-    private <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Integer count, Set<K> skipKeys,
+    private <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, boolean reverse, Integer count, Set<K> skipKeys,
                                    DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get list by FK " + clazz.getSimpleName());
 
@@ -476,7 +482,7 @@ public class EntityManager {
 
             HerculesQueryResult<K> queryResult = dataDriver.getSlice(hercules.getKeyspace(), foreignKeyMetadata.getColumnFamily(), dataOperationsProfile,
                     new ByteArrayRowSerializer<Object, K>(getForeignKeySerializer(metadata.getIndexMetadata(foreignKey.getClass())), this.<K>getPrimaryKeySerializer(metadata)),
-                    foreignKey, new SliceDataSpecificator<K>(null, null, false, count));
+                    foreignKey, new SliceDataSpecificator<K>(null, null, reverse, count));
 
             if (queryResult.hasResult()) {
                 countEntities(dataOperationsProfile, queryResult.getEntries());
