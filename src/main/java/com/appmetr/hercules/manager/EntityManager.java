@@ -170,10 +170,18 @@ public class EntityManager {
         return getByFK(clazz, foreignKey, null, skipKeys, dataOperationsProfile);
     }
 
+    private <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Integer count, Set<K> skipKeys, DataOperationsProfile dataOperationsProfile) {
+        return getByFK(clazz, foreignKey, count, false, skipKeys, dataOperationsProfile);
+    }
+
     public <E> E getSingleByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
         List<E> entites = getByFK(clazz, foreignKey, 1, null, dataOperationsProfile);
 
         return entites.size() > 0 ? entites.get(0) : null;
+    }
+
+    public <E> List<E> getFixedSizeListByFK(Class<E> clazz, ForeignKey foreignKey, Integer count, boolean reverse, DataOperationsProfile dataOperationsProfile) {
+        return getByFK(clazz, foreignKey, count, reverse, null, dataOperationsProfile);
     }
 
     public <E, U> List<E> getByCollectionIndex(Class<E> clazz, String indexedFieldame, U indexValue, DataOperationsProfile dataOperationsProfile) {
@@ -466,7 +474,7 @@ public class EntityManager {
         }
     }
 
-    private <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Integer count, Set<K> skipKeys,
+    private <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Integer count, boolean reverse, Set<K> skipKeys,
                                    DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get list by FK " + clazz.getSimpleName());
 
@@ -476,7 +484,7 @@ public class EntityManager {
 
             HerculesQueryResult<K> queryResult = dataDriver.getSlice(hercules.getKeyspace(), foreignKeyMetadata.getColumnFamily(), dataOperationsProfile,
                     new ByteArrayRowSerializer<Object, K>(getForeignKeySerializer(metadata.getIndexMetadata(foreignKey.getClass())), this.<K>getPrimaryKeySerializer(metadata)),
-                    foreignKey, new SliceDataSpecificator<K>(null, null, false, count));
+                    foreignKey, new SliceDataSpecificator<K>(null, null, reverse, count));
 
             if (queryResult.hasResult()) {
                 countEntities(dataOperationsProfile, queryResult.getEntries());
