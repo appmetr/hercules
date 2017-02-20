@@ -163,25 +163,23 @@ public class EntityManager {
     }
 
     public <E> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
-        return getByFK(clazz, foreignKey, null, null, dataOperationsProfile);
+        return getByFK(clazz, foreignKey, false, null, null, dataOperationsProfile);
     }
 
     public <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Set<K> skipKeys, DataOperationsProfile dataOperationsProfile) {
-        return getByFK(clazz, foreignKey, null, skipKeys, dataOperationsProfile);
+        return getByFK(clazz, foreignKey, false, null, skipKeys, dataOperationsProfile);
     }
 
-    private <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Integer count, Set<K> skipKeys, DataOperationsProfile dataOperationsProfile) {
-        return getByFK(clazz, foreignKey, count, false, skipKeys, dataOperationsProfile);
+
+    public <E> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, boolean reverse, Integer count, DataOperationsProfile dataOperationsProfile) {
+        return getByFK(clazz, foreignKey, reverse, count, null, dataOperationsProfile);
     }
+
 
     public <E> E getSingleByFK(Class<E> clazz, ForeignKey foreignKey, DataOperationsProfile dataOperationsProfile) {
-        List<E> entites = getByFK(clazz, foreignKey, 1, null, dataOperationsProfile);
+        List<E> entites = getByFK(clazz, foreignKey, false, 1, null, dataOperationsProfile);
 
         return entites.size() > 0 ? entites.get(0) : null;
-    }
-
-    public <E> List<E> getFixedSizeListByFK(Class<E> clazz, ForeignKey foreignKey, Integer count, boolean reverse, DataOperationsProfile dataOperationsProfile) {
-        return getByFK(clazz, foreignKey, count, reverse, null, dataOperationsProfile);
     }
 
     public <E, U> List<E> getByCollectionIndex(Class<E> clazz, String indexedFieldame, U indexValue, DataOperationsProfile dataOperationsProfile) {
@@ -474,7 +472,7 @@ public class EntityManager {
         }
     }
 
-    private <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, Integer count, boolean reverse, Set<K> skipKeys,
+    private <E, K> List<E> getByFK(Class<E> clazz, ForeignKey foreignKey, boolean reverse, Integer count, Set<K> skipKeys,
                                    DataOperationsProfile dataOperationsProfile) {
         StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_EM, "Get list by FK " + clazz.getSimpleName());
 
