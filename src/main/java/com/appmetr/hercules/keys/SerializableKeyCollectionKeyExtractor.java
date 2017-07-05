@@ -1,6 +1,6 @@
 package com.appmetr.hercules.keys;
 
-import me.prettyprint.hector.api.Serializer;
+import com.datastax.driver.core.TypeCodec;
 
 import javax.inject.Inject;
 import java.lang.reflect.Field;
@@ -10,10 +10,10 @@ import java.util.Collections;
 public class SerializableKeyCollectionKeyExtractor<E, K> implements CollectionKeysExtractor<E, K> {
 
     private Field collectionField;
-    private Serializer<K> keySerializer;
+    private TypeCodec<K> keySerializer;
 
     @Inject
-    public SerializableKeyCollectionKeyExtractor(Field collectionField, Serializer<K> serializer) {
+    public SerializableKeyCollectionKeyExtractor(Field collectionField, TypeCodec<K> serializer) {
         this.collectionField = collectionField;
         this.keySerializer = serializer;
     }
@@ -32,7 +32,7 @@ public class SerializableKeyCollectionKeyExtractor<E, K> implements CollectionKe
         }
     }
 
-    @Override public Serializer<K> getKeySerializer() {
+    @Override public TypeCodec<K> getKeySerializer() {
         return keySerializer;
     }
 

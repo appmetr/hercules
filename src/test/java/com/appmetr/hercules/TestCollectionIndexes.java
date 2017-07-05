@@ -10,8 +10,7 @@ import com.appmetr.hercules.model.EntityWithCollection;
 import com.appmetr.hercules.model.TestEntity;
 import com.appmetr.hercules.serializers.ParentFKSerializer;
 import com.appmetr.hercules.serializers.TestDatedColumnSerializer;
-import me.prettyprint.cassandra.serializers.StringSerializer;
-import me.prettyprint.hector.api.Serializer;
+import com.datastax.driver.core.TypeCodec;
 import org.junit.Test;
 
 import java.util.*;
@@ -32,14 +31,14 @@ public class TestCollectionIndexes extends TestHercules {
 
         assertEquals(4, collIndexes.size());
         EntityWithCollection testEntity = new EntityWithCollection();
-        Map<String, Object> keys = new HashMap<String, Object>();
-        Map<String, Class<? extends Serializer>> serializers = new HashMap<String, Class<? extends Serializer>>();
+        Map<String, Object> keys = new HashMap<>();
+        Map<String, Class<? extends TypeCodec>> serializers = new HashMap<>();
 
         TestEntity entityKey = new TestEntity();
         entityKey.id = "entityKey!11!";
         testEntity.getEntities().add(entityKey);
         keys.put("entities", entityKey.id);
-        serializers.put("entities", StringSerializer.class);
+        serializers.put("entities", TypeCodec.class);
 
         ParentFK parentFk = new ParentFK("parentFKKey");
         testEntity.getSerializableKeys().add(parentFk);
@@ -54,7 +53,7 @@ public class TestCollectionIndexes extends TestHercules {
         String keyInJson = "keyInjson2121";
         testEntity.setJsonCollection("{" + keyInJson + "}");
         keys.put("jsonCollection", keyInJson);
-        serializers.put("jsonCollection", StringSerializer.class);
+        serializers.put("jsonCollection", TypeCodec.class);
 
 
         for (Map.Entry<String, CollectionIndexMetadata> indexMetadata : collIndexes.entrySet()) {
@@ -123,14 +122,14 @@ public class TestCollectionIndexes extends TestHercules {
         {
             List<EntityWithCollection> l2 = daoForCollection.getEntitiesByKeyCollection(parentFk);
             assertEquals(2, l2.size());
-            Set<EntityWithCollection> asSet = new HashSet<EntityWithCollection>(l2);
+            Set<EntityWithCollection> asSet = new HashSet<>(l2);
             assertTrue(asSet.contains(e1));
             assertTrue(asSet.contains(e2));
         }
         {
             List<EntityWithCollection> l3 = daoForCollection.getEntitiesBySerializableCollection(tdc);
             assertEquals(2, l3.size());
-            Set<EntityWithCollection> asSet2 = new HashSet<EntityWithCollection>(l3);
+            Set<EntityWithCollection> asSet2 = new HashSet<>(l3);
             assertTrue(asSet2.contains(e1));
             assertTrue(asSet2.contains(e2));
         }
@@ -142,7 +141,7 @@ public class TestCollectionIndexes extends TestHercules {
         {
             List<EntityWithCollection> l4 = daoForCollection.getEntitiesByKEyFromJson(keyInJson);
             assertEquals(2, l4.size());
-            Set<EntityWithCollection> asSet2 = new HashSet<EntityWithCollection>(l4);
+            Set<EntityWithCollection> asSet2 = new HashSet<>(l4);
             assertTrue(asSet2.contains(e1));
             assertTrue(asSet2.contains(e2));
         }

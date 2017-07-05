@@ -1,5 +1,6 @@
 package com.appmetr.hercules;
 
+import com.appmetr.hercules.driver.CqlDataDriver;
 import com.appmetr.hercules.driver.DataDriver;
 import com.appmetr.hercules.driver.ThriftDataDriver;
 import com.appmetr.hercules.manager.EntityManager;
@@ -18,7 +19,7 @@ public class HerculesFactory {
             @Override protected void configure() {
                 bind(HerculesConfig.class).toInstance(config);
 
-                bind(DataDriver.class).to(ThriftDataDriver.class).in(Scopes.SINGLETON);
+                bind(DataDriver.class).to(CqlDataDriver.class).in(Scopes.SINGLETON);
                 bind(EntityManager.class).in(Scopes.SINGLETON);
                 bind(WideEntityManager.class).in(Scopes.SINGLETON);
                 bind(IndexManager.class).in(Scopes.SINGLETON);

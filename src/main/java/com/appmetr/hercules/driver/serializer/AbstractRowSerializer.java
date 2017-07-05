@@ -1,21 +1,21 @@
 package com.appmetr.hercules.driver.serializer;
 
-import me.prettyprint.hector.api.Serializer;
+import com.datastax.driver.core.TypeCodec;
 
 public abstract class AbstractRowSerializer<K, T> implements RowSerializer<K, T> {
-    private Serializer<K> rowKeySerializer;
-    private Serializer<T> topKeySerializer;
+    private TypeCodec<K> rowKeySerializer;
+    private TypeCodec<T> topKeySerializer;
 
-    public AbstractRowSerializer(Serializer<K> rowKeySerializer, Serializer<T> topKeySerializer) {
+    public AbstractRowSerializer(TypeCodec<K> rowKeySerializer, TypeCodec<T> topKeySerializer) {
         this.rowKeySerializer = rowKeySerializer;
         this.topKeySerializer = topKeySerializer;
     }
 
-    public Serializer<K> getRowKeySerializer() {
+    public TypeCodec<K> getRowKeySerializer() {
         return rowKeySerializer;
     }
 
-    public Serializer<T> getTopKeySerializer() {
+    public TypeCodec<T> getTopKeySerializer() {
         return topKeySerializer;
     }
 }

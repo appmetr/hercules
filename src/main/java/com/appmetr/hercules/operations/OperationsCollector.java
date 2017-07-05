@@ -14,7 +14,7 @@ public class OperationsCollector<T extends ExecutableOperation> {
         GET, SAVE, DELETE
     }
 
-    private List<T> operations = new ArrayList<T>();
+    private List<T> operations = new ArrayList<>();
 
     public void add(T operation) {
         operations.add(operation);

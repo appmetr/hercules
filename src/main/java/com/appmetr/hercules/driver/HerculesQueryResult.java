@@ -3,13 +3,18 @@ package com.appmetr.hercules.driver;
 import java.util.LinkedHashMap;
 
 public class HerculesQueryResult<T> {
-    private LinkedHashMap<T, Object> entries = new LinkedHashMap<T, Object>();
+    private LinkedHashMap<T, Object> entries = new LinkedHashMap<>();
     boolean hasResult = false;
 
     public HerculesQueryResult() {
     }
 
     public HerculesQueryResult(LinkedHashMap<T, Object> entries) {
+        this.entries = entries;
+        this.hasResult = true;
+    }
+
+    public void setEntries(LinkedHashMap<T, Object> entries) {
         this.entries = entries;
         this.hasResult = true;
     }

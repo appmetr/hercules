@@ -43,6 +43,6 @@ public abstract class AbstractBatchIterator<E, K> implements BatchIterator<E, K>
     }
 
     public FailoverBatchIterator<E, K> failover(FailoverConf conf, Logger logger) {
-        return new FailoverBatchIterator<E, K>(this, conf, logger);
+        return new FailoverBatchIterator<>(this, conf, logger);
     }
 }

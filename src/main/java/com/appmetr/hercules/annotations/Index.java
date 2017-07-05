@@ -1,7 +1,7 @@
 package com.appmetr.hercules.annotations;
 
 import com.appmetr.hercules.keys.ForeignKey;
-import com.appmetr.hercules.serializers.AbstractHerculesSerializer;
+import com.datastax.driver.core.TypeCodec;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -13,5 +13,5 @@ import java.lang.annotation.Target;
 public @interface Index {
     Class<? extends ForeignKey> keyClass();
 
-    Class<? extends AbstractHerculesSerializer> serializer() default AbstractHerculesSerializer.class;
+    Class<? extends TypeCodec> serializer() default TypeCodec.class;
 }

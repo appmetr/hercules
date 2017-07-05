@@ -68,7 +68,7 @@ public class PartitioningStarter implements Runnable {
         logger.info(MessageFormat.format("PartitioningJob started at {0}", new Date()));
 
         try {
-            List<ExecutableMutation> mutations = new LinkedList<ExecutableMutation>();
+            List<ExecutableMutation> mutations = new LinkedList<>();
 
             mutations.addAll(hercules.getPartitionMutations());
 

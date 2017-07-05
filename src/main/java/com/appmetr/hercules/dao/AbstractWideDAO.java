@@ -14,8 +14,8 @@ import com.appmetr.hercules.wide.SliceDataSpecificator;
 import com.google.inject.Key;
 import com.google.inject.TypeLiteral;
 
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public abstract class AbstractWideDAO<E, R, T> {
@@ -24,11 +24,7 @@ public abstract class AbstractWideDAO<E, R, T> {
     private HerculesProvider provider;
 
     public AbstractWideDAO(Class<E> entityClass, final Hercules hercules) {
-        this(entityClass, new HerculesProvider() {
-            @Override public Hercules getHercules() {
-                return hercules;
-            }
-        });
+        this(entityClass, () -> hercules);
     }
 
     public AbstractWideDAO(Class<E> entityClass, HerculesProvider provider) {
@@ -205,11 +201,11 @@ public abstract class AbstractWideDAO<E, R, T> {
     }
 
     public int processRange(R rowKey, T from, T to, int batchSize, BatchProcessor<E> processor) {
-        return new BatchExecutor<E, T>(new WideDAOBatchIterator<E, R, T>(this, rowKey, from, to, batchSize), processor).execute();
+        return new BatchExecutor<>(new WideDAOBatchIterator<>(this, rowKey, from, to, batchSize), processor).execute();
     }
 
     public int processRange(R rowKey, T from, T to, int batchSize, DataOperationsProfile dataOperationsProfile, BatchProcessor<E> processor) {
-        return new BatchExecutor<E, T>(new WideDAOBatchIterator<E, R, T>(this, rowKey, from, to, batchSize), processor).execute(dataOperationsProfile);
+        return new BatchExecutor<>(new WideDAOBatchIterator<>(this, rowKey, from, to, batchSize), processor).execute(dataOperationsProfile);
     }
 
     public List<R> getKeyRange(R from, R to, int batchSize) {
@@ -231,7 +227,7 @@ public abstract class AbstractWideDAO<E, R, T> {
     public OperationsCollector<GetExecutableOperation> getOperationFor(R rowKey, T topKeys) {
         OperationsCollector<GetExecutableOperation> collector = getHercules().getInjector().getInstance(Key.get(new TypeLiteral<OperationsCollector<GetExecutableOperation>>() {
         }));
-        collector.add(new GetExecutableOperation<E, R, T>(entityClass, rowKey, Arrays.asList(topKeys)));
+        collector.add(new GetExecutableOperation<>(entityClass, rowKey, Collections.singletonList(topKeys)));
 
         return collector;
     }
@@ -239,7 +235,7 @@ public abstract class AbstractWideDAO<E, R, T> {
     public OperationsCollector<GetExecutableOperation> getOperationFor(R rowKey, T[] topKeys) {
         OperationsCollector<GetExecutableOperation> collector = getHercules().getInjector().getInstance(Key.get(new TypeLiteral<OperationsCollector<GetExecutableOperation>>() {
         }));
-        collector.add(new GetExecutableOperation<E, R, T>(entityClass, rowKey, topKeys));
+        collector.add(new GetExecutableOperation<>(entityClass, rowKey, topKeys));
 
         return collector;
     }
@@ -247,7 +243,7 @@ public abstract class AbstractWideDAO<E, R, T> {
     public OperationsCollector<GetExecutableOperation> getOperationFor(R rowKey, List<T> topKeys) {
         OperationsCollector<GetExecutableOperation> collector = getHercules().getInjector().getInstance(Key.get(new TypeLiteral<OperationsCollector<GetExecutableOperation>>() {
         }));
-        collector.add(new GetExecutableOperation<E, R, T>(entityClass, rowKey, topKeys));
+        collector.add(new GetExecutableOperation<>(entityClass, rowKey, topKeys));
 
         return collector;
     }
@@ -263,7 +259,7 @@ public abstract class AbstractWideDAO<E, R, T> {
     public OperationsCollector<SaveExecutableOperation> saveOperationFor(R rowKey, E entity) {
         OperationsCollector<SaveExecutableOperation> collector = getHercules().getInjector().getInstance(Key.get(new TypeLiteral<OperationsCollector<SaveExecutableOperation>>() {
         }));
-        collector.add(new SaveExecutableOperation<E, R, T>(entityClass, rowKey, Arrays.asList(entity)));
+        collector.add(new SaveExecutableOperation<E, R, T>(entityClass, rowKey, Collections.singletonList(entity)));
 
         return collector;
     }
@@ -279,7 +275,7 @@ public abstract class AbstractWideDAO<E, R, T> {
     public OperationsCollector<SaveExecutableOperation> saveOperationFor(R rowKey, E entity, int ttl) {
         OperationsCollector<SaveExecutableOperation> collector = getHercules().getInjector().getInstance(Key.get(new TypeLiteral<OperationsCollector<SaveExecutableOperation>>() {
         }));
-        collector.add(new SaveExecutableOperation<E, R, T>(entityClass, rowKey, Arrays.asList(entity), ttl));
+        collector.add(new SaveExecutableOperation<E, R, T>(entityClass, rowKey, Collections.singletonList(entity), ttl));
 
         return collector;
     }
@@ -287,7 +283,7 @@ public abstract class AbstractWideDAO<E, R, T> {
     public OperationsCollector<DeleteExecutableOperation> deleteOperationFor(R rowKey, T[] topKeys) {
         OperationsCollector<DeleteExecutableOperation> collector = getHercules().getInjector().getInstance(Key.get(new TypeLiteral<OperationsCollector<DeleteExecutableOperation>>() {
         }));
-        collector.add(new DeleteExecutableOperation<E, R, T>(entityClass, rowKey, topKeys));
+        collector.add(new DeleteExecutableOperation<>(entityClass, rowKey, topKeys));
 
         return collector;
     }

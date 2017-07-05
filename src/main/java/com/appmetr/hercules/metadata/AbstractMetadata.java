@@ -1,15 +1,14 @@
 package com.appmetr.hercules.metadata;
 
 import com.appmetr.hercules.driver.DataDriver;
-import com.appmetr.hercules.serializers.AbstractHerculesSerializer;
-import me.prettyprint.hector.api.ddl.ComparatorType;
+import com.datastax.driver.core.TypeCodec;
 
 public abstract class AbstractMetadata {
     private Class entityClass;
-    private Class<? extends AbstractHerculesSerializer> entitySerializer;
+    private Class<? extends TypeCodec> entitySerializer;
 
     private String columnFamily;
-    private ComparatorType comparatorType;
+    //private ComparatorType comparatorType;
 
     private EntityListenerMetadata listenerMetadata;
     private int entityTTL = DataDriver.EMPTY_TTL;
@@ -22,11 +21,11 @@ public abstract class AbstractMetadata {
         this.entityClass = entityClass;
     }
 
-    public Class<? extends AbstractHerculesSerializer> getEntitySerializer() {
+    public Class<? extends TypeCodec> getEntitySerializer() {
         return entitySerializer;
     }
 
-    public void setEntitySerializer(Class<? extends AbstractHerculesSerializer> entitySerializer) {
+    public void setEntitySerializer(Class<? extends TypeCodec> entitySerializer) {
         this.entitySerializer = entitySerializer;
     }
 
@@ -36,14 +35,6 @@ public abstract class AbstractMetadata {
 
     public void setColumnFamily(String columnFamily) {
         this.columnFamily = columnFamily;
-    }
-
-    public ComparatorType getComparatorType() {
-        return comparatorType;
-    }
-
-    public void setComparatorType(ComparatorType comparatorType) {
-        this.comparatorType = comparatorType;
     }
 
     public EntityListenerMetadata getListenerMetadata() {

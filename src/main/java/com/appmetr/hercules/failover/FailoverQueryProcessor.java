@@ -1,13 +1,12 @@
 package com.appmetr.hercules.failover;
 
-import me.prettyprint.hector.api.exceptions.HTimedOutException;
-import me.prettyprint.hector.api.exceptions.HUnavailableException;
-import me.prettyprint.hector.api.exceptions.HectorException;
+import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import org.slf4j.Logger;
 
 public class FailoverQueryProcessor {
 
-    public static <T> T process(FailoverConf conf, Logger logger, FailoverQuery<T> query) throws HectorException {
+    public static <T> T process(FailoverConf conf, Logger logger, FailoverQuery<T> query) throws DriverException {
 
         if (conf.getMaxRetries() == 0) {
             throw new IllegalArgumentException("Invalid retries count: " + conf.getMaxRetries());
@@ -17,12 +16,10 @@ public class FailoverQueryProcessor {
         int currSleepBetweenRetries = Math.min(conf.getStartSleepBetweenRetriesMs(), conf.getMaxSleepBetweenRetriesMs());
         while (true) {
 
-            HectorException exception;
+            DriverException exception;
             try {
                 return query.query();
-            } catch (HTimedOutException e) {
-                exception = e;
-            } catch (HUnavailableException e) {
+            } catch (NoHostAvailableException e) {
                 exception = e;
             }
 
@@ -44,13 +41,10 @@ public class FailoverQueryProcessor {
         }
     }
 
-    public static void process(FailoverConf conf, Logger logger, final VoidFailoverQuery query) throws HectorException {
-        process(conf, logger, new FailoverQuery<Void>() {
-            @Override public Void query() {
-                query.query();
-
-                return null;
-            }
+    public static void process(FailoverConf conf, Logger logger, final VoidFailoverQuery query) throws DriverException {
+        process(conf, logger, (FailoverQuery<Void>) () -> {
+            query.query();
+            return null;
         });
     }
 }

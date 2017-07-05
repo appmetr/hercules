@@ -9,8 +9,8 @@ import java.util.List;
 public class NoPartitionProvider<R, T> implements PartitionProvider<R, T> {
     @Override
     public List<SliceDataSpecificatorByCF<T>> getPartitionedQueries(R rowKey, SliceDataSpecificator<T> sliceDataSpecificator) {
-        List<SliceDataSpecificatorByCF<T>> result = new ArrayList<SliceDataSpecificatorByCF<T>>();
-        result.add(new SliceDataSpecificatorByCF<T>("", sliceDataSpecificator));
+        List<SliceDataSpecificatorByCF<T>> result = new ArrayList<>();
+        result.add(new SliceDataSpecificatorByCF<>("", sliceDataSpecificator));
         return result;
     }
 
@@ -19,7 +19,7 @@ public class NoPartitionProvider<R, T> implements PartitionProvider<R, T> {
     }
 
     @Override public List<String> getPartitionsForCreation() {
-        List<String> result = new ArrayList<String>();
+        List<String> result = new ArrayList<>();
         result.add("");
         return result;
     }

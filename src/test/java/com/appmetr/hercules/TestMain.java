@@ -9,7 +9,7 @@ import java.util.Set;
 
 public class TestMain {
     public static void main(String[] args) throws InterruptedException {
-        Set<Class> classes = new HashSet<Class>();
+        Set<Class> classes = new HashSet<>();
 
         //Entity
         classes.add(TestEntity.class);

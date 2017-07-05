@@ -2,7 +2,7 @@ package com.appmetr.hercules.mutations;
 
 public abstract class ExecutableMutation implements Comparable<ExecutableMutation> {
 
-    public static enum MutationType {
+    public enum MutationType {
         CREATE, DELETE
     }
 

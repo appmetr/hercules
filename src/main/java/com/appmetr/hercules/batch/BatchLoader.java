@@ -62,14 +62,14 @@ public class BatchLoader<E, R, T> {
 
         List<E> truncatedBatchList;
         if (!nextBatchCalled) {
-            truncatedBatchList = new ArrayList<E>(fetchedBatchList);
+            truncatedBatchList = new ArrayList<>(fetchedBatchList);
             nextBatchCalled = true;
         } else {
             if (fetchedBatchList.size() < 1) {
                 logger.warn(MessageFormat.format("Empty list for wide service get. Row key: [{0}], start: [{1}], end: [{2}]. batchSize:[{3}]", rowKey, start, end, batchSize));
-                truncatedBatchList = new ArrayList<E>();
+                truncatedBatchList = new ArrayList<>();
             } else {
-                truncatedBatchList = new ArrayList<E>(fetchedBatchList.subList(1, fetchedBatchList.size()));
+                truncatedBatchList = new ArrayList<>(fetchedBatchList.subList(1, fetchedBatchList.size()));
             }
         }
         if (truncatedBatchList.size() != 0) {

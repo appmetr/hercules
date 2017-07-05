@@ -77,9 +77,7 @@ class EntityListenerInvocationHelper {
             } else {
                 throw new RuntimeException("Wrong " + method.getName() + " method signature for listener " + obj.getClass().getSimpleName() + ". Method should receive 1 or 0 params ");
             }
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
+        } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
 

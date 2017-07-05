@@ -57,7 +57,7 @@ public abstract class RangeBatchIterator<E, K> extends AbstractBatchIterator<E, 
     @Override public List<E> next(DataOperationsProfile dataOperationsProfile) {
         List<E> batch = getRange(currentLowKey, currentHighKey, reverse, batchSize + 1, dataOperationsProfile);
 
-        List<E> result = new ArrayList<E>();
+        List<E> result = new ArrayList<>();
 
         if (batch.size() == 0) {
             hasNext = false;

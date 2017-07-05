@@ -1,14 +1,14 @@
 package com.appmetr.hercules.driver.serializer;
 
-import me.prettyprint.hector.api.Serializer;
+import com.datastax.driver.core.TypeCodec;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class ColumnRowSerializer<K, T> extends AbstractRowSerializer<K, T> {
-    private Map<T, Serializer> columnSerializers = new HashMap<T, Serializer>();
+    private Map<T, TypeCodec> columnSerializers = new HashMap<>();
 
-    public ColumnRowSerializer(Serializer<K> rowKeySerializer, Serializer<T> topKeySerializer, Map<T, Serializer> columnSerializers) {
+    public ColumnRowSerializer(TypeCodec<K> rowKeySerializer, TypeCodec<T> topKeySerializer, Map<T, TypeCodec> columnSerializers) {
         super(rowKeySerializer, topKeySerializer);
 
         this.columnSerializers = columnSerializers;
@@ -18,7 +18,7 @@ public class ColumnRowSerializer<K, T> extends AbstractRowSerializer<K, T> {
         return columnSerializers.containsKey(topKey);
     }
 
-    @Override public Serializer getValueSerializer(T topKey) {
+    @Override public TypeCodec getValueSerializer(T topKey) {
         return columnSerializers.get(topKey);
     }
 }

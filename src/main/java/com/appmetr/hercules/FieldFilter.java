@@ -4,5 +4,5 @@ import java.lang.reflect.Field;
 
 public interface FieldFilter {
 
-    public boolean accept(Field field);
+    boolean accept(Field field);
 }

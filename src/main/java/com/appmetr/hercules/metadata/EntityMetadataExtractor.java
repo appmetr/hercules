@@ -3,20 +3,14 @@ package com.appmetr.hercules.metadata;
 import com.appmetr.hercules.HerculesConfig;
 import com.appmetr.hercules.annotations.*;
 import com.appmetr.hercules.driver.DataDriver;
-import com.appmetr.hercules.keys.CollectionKeysExtractor;
-import com.appmetr.hercules.keys.EntityCollectionKeyExtractor;
 import com.appmetr.hercules.keys.ForeignKey;
-import com.appmetr.hercules.keys.SerializableKeyCollectionKeyExtractor;
 import com.appmetr.hercules.manager.EntityManager;
-import com.appmetr.hercules.serializers.AbstractHerculesSerializer;
-import com.appmetr.hercules.serializers.SerializerProvider;
-import com.google.common.base.Strings;
+import com.datastax.driver.core.TypeCodec;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -29,7 +23,7 @@ public class EntityMetadataExtractor {
     @Inject HerculesConfig herculesConfig;
     @Inject EntityManager em;
     @Inject private DataDriver dataDriver;
-    @Inject private SerializerProvider serializerProvider;
+    //@Inject private SerializerProvider serializerProvider;
     @Inject Injector injector;
 
 
@@ -45,7 +39,7 @@ public class EntityMetadataExtractor {
         EntityAnnotationsValidator.validateThatOnlyOneIdPresent(clazz);
         EntityAnnotationsValidator.validateIndexes(clazz);
 
-        Set<String> indexColumnFamilies = new HashSet<String>();
+        Set<String> indexColumnFamilies = new HashSet<>();
         parseClassLevelMetadata(clazz, metadata, indexColumnFamilies);
         parseFieldLevelMetadata(clazz, metadata, indexColumnFamilies);
 
@@ -57,7 +51,6 @@ public class EntityMetadataExtractor {
         metadata.setColumnFamily(entityAnnotation.columnFamily().length() == 0 ? clazz.getSimpleName() : entityAnnotation.columnFamily());
         metadata.setEntityClass(clazz);
 
-        MetadataExtractorUtils.setEntityComparatorType(clazz, metadata, entityAnnotation.comparatorType());
         MetadataExtractorUtils.setEntitySerializer(clazz, metadata);
         MetadataExtractorUtils.setEntityTTL(clazz, metadata);
         metadata.setListenerMetadata(MetadataExtractorUtils.getListenerMetadata(clazz));
@@ -76,7 +69,7 @@ public class EntityMetadataExtractor {
             Class primaryKeyClass = primaryKeyAnnotation.keyClass();
             primaryKeyMetadata.setKeyClass(primaryKeyClass);
 
-            if (!primaryKeyAnnotation.serializer().equals(AbstractHerculesSerializer.class)) {
+            if (!primaryKeyAnnotation.serializer().equals(TypeCodec.class)) {
                 primaryKeyMetadata.setSerializer(primaryKeyAnnotation.serializer());
             } else if (primaryKeyClass.isAnnotationPresent(Serializer.class)) {
                 primaryKeyMetadata.setSerializer(((Serializer) primaryKeyClass.getAnnotation(Serializer.class)).value());
@@ -127,7 +120,7 @@ public class EntityMetadataExtractor {
                 primaryKeyMetadata.setKeyClass(primaryKeyClass);
 
                 Id idAnnotation = field.getAnnotation(Id.class);
-                if (!idAnnotation.serializer().equals(AbstractHerculesSerializer.class)) {
+                if (!idAnnotation.serializer().equals(TypeCodec.class)) {
                     primaryKeyMetadata.setSerializer(idAnnotation.serializer());
                 } else if (primaryKeyClass.isAnnotationPresent(Serializer.class)) {
                     primaryKeyMetadata.setSerializer(((Serializer) primaryKeyClass.getAnnotation(Serializer.class)).value());
@@ -183,7 +176,7 @@ public class EntityMetadataExtractor {
             }
         }
 
-        if (!indexAnnotation.serializer().equals(AbstractHerculesSerializer.class)) {
+        if (!indexAnnotation.serializer().equals(TypeCodec.class)) {
             keyMetadata.setSerializer(indexAnnotation.serializer());
         } else if (keyClass.isAnnotationPresent(Serializer.class)) {
             keyMetadata.setSerializer((keyClass.getAnnotation(Serializer.class)).value());
@@ -196,13 +189,14 @@ public class EntityMetadataExtractor {
     }
 
     private String parseCollectionIndexMetadata(Field field, IndexedCollection indexAnnotation, EntityMetadata metadata) {
+/*
         CollectionIndexMetadata indexMetadata = new CollectionIndexMetadata();
         Class<?> itemClass = null;
         if (!Object.class.equals(indexAnnotation.itemClass())) {
             itemClass = indexAnnotation.itemClass();
         }
-        Class<? extends AbstractHerculesSerializer> serializerClass = null;
-        if (!AbstractHerculesSerializer.class.equals(indexAnnotation.serializer())) {
+        Class<? extends TypeCodec> serializerClass = null;
+        if (!TypeCodec.class.equals(indexAnnotation.serializer())) {
             serializerClass = indexAnnotation.serializer();
         }
         Class<? extends CollectionKeysExtractor> keyExtractorClass = null;
@@ -220,6 +214,7 @@ public class EntityMetadataExtractor {
                         + ". itemClass or keyExtractorClass should be specified");
             }
         }
+
 
         CollectionKeysExtractor keysExtractor;
         if (keyExtractorClass != null) {
@@ -258,6 +253,7 @@ public class EntityMetadataExtractor {
         indexMetadata.setIndexColumnFamily(name);
         metadata.getCollectionIndexes().put(field.getName(), indexMetadata);
         return name;
+        */return null;
     }
 
     private String getColumnName(Field field) {

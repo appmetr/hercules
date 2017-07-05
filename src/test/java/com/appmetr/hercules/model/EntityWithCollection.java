@@ -24,17 +24,17 @@ public class EntityWithCollection implements Serializable {
 
     @Transient
     @IndexedCollection(itemClass = TestEntity.class)
-    private Set<TestEntity> entities = new HashSet<TestEntity>();
+    private Set<TestEntity> entities = new HashSet<>();
     String entitiesPersistField;
 
     @Transient
     @IndexedCollection(itemClass = ParentFK.class)
-    private List<ParentFK> serializableKeys = new ArrayList<ParentFK>();
+    private List<ParentFK> serializableKeys = new ArrayList<>();
     String serializableKeysPersistField;
 
     @Transient
     @IndexedCollection(name = "haveSerializer", itemClass = TestDatedColumn.class, serializer = TestDatedColumnSerializer.class)
-    private Set<TestDatedColumn> collectionWithExplicitSerializer = new HashSet<TestDatedColumn>(); // EntityWithCollection_collectionWithExplicitSerializer is 53 chars long. cassandra limit is 48, so using short name is necessary
+    private Set<TestDatedColumn> collectionWithExplicitSerializer = new HashSet<>(); // EntityWithCollection_collectionWithExplicitSerializer is 53 chars long. cassandra limit is 48, so using short name is necessary
     byte[] collectionWithExplicitSerializerPersistField;
 
 

@@ -1,20 +1,38 @@
 package com.appmetr.hercules.serializers;
 
 import com.appmetr.hercules.model.nonorganic.TestNonorganicWideEntityA;
-import com.appmetr.hercules.utils.SerializationUtils;
-import me.prettyprint.cassandra.serializers.BytesArraySerializer;
+import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.ProtocolVersion;
+import com.datastax.driver.core.TypeCodec;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
+import com.google.common.reflect.TypeToken;
 
 import java.nio.ByteBuffer;
 
-public class TestNonorganicWideEntityASerializer extends AbstractHerculesSerializer<TestNonorganicWideEntityA> {
-    @Override public ByteBuffer toByteBuffer(TestNonorganicWideEntityA obj) {
-        return ByteBuffer.wrap(SerializationUtils.serialize(obj));
+public class TestNonorganicWideEntityASerializer extends TypeCodec<TestNonorganicWideEntityA> {
+
+
+    protected TestNonorganicWideEntityASerializer(DataType cqlType, Class<TestNonorganicWideEntityA> javaClass) {
+        super(cqlType, javaClass);
     }
 
-    @Override public TestNonorganicWideEntityA fromByteBuffer(ByteBuffer byteBuffer) {
-        TestNonorganicWideEntityA entity = new TestNonorganicWideEntityA();
-        SerializationUtils.deserialize(BytesArraySerializer.get().fromByteBuffer(byteBuffer), entity);
+    protected TestNonorganicWideEntityASerializer(DataType cqlType, TypeToken<TestNonorganicWideEntityA> javaType) {
+        super(cqlType, javaType);
+    }
 
-        return entity;
+    @Override public ByteBuffer serialize(TestNonorganicWideEntityA testNonorganicWideEntityA, ProtocolVersion protocolVersion) throws InvalidTypeException {
+        return null;
+    }
+
+    @Override public TestNonorganicWideEntityA deserialize(ByteBuffer byteBuffer, ProtocolVersion protocolVersion) throws InvalidTypeException {
+        return null;
+    }
+
+    @Override public TestNonorganicWideEntityA parse(String s) throws InvalidTypeException {
+        return null;
+    }
+
+    @Override public String format(TestNonorganicWideEntityA testNonorganicWideEntityA) throws InvalidTypeException {
+        return null;
     }
 }

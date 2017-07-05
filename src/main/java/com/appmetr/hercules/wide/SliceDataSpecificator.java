@@ -1,12 +1,6 @@
 package com.appmetr.hercules.wide;
 
 import com.appmetr.hercules.driver.DataDriver;
-import me.prettyprint.cassandra.model.thrift.ThriftMultigetSliceQuery;
-import me.prettyprint.cassandra.model.thrift.ThriftRangeSlicesQuery;
-import me.prettyprint.cassandra.model.thrift.ThriftSliceQuery;
-import me.prettyprint.hector.api.query.MultigetSliceQuery;
-import me.prettyprint.hector.api.query.RangeSlicesQuery;
-import me.prettyprint.hector.api.query.SliceQuery;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -47,6 +41,7 @@ public class SliceDataSpecificator<N> {
         this.limit = limit == null || limit > DataDriver.MAX_TOP_COUNT ? DataDriver.MAX_TOP_COUNT : limit;
     }
 
+/*
     public <K, V> void fillRangeSliceQuery(RangeSlicesQuery<K, N, V> sliceQuery) {
         if (type == SliceDataSpecificatorType.COLUMNS) {
             if (columnsArray != null) {
@@ -65,8 +60,9 @@ public class SliceDataSpecificator<N> {
             throw new IllegalStateException("Invalid type: " + type);
         }
     }
+*/
 
-    public <K, V> void fillMultigetSliceQuery(MultigetSliceQuery<K, N, V> sliceQuery) {
+    /*public <K, V> void fillMultigetSliceQuery(MultigetSliceQuery<K, N, V> sliceQuery) {
         if (type == SliceDataSpecificatorType.COLUMNS) {
             if (columnsArray != null) {
                 sliceQuery.setColumnNames(columnsArray);
@@ -83,8 +79,9 @@ public class SliceDataSpecificator<N> {
         } else {
             throw new IllegalStateException("Invalid type: " + type);
         }
-    }
+    }*/
 
+/*
     public <K, V> void fillSliceQuery(SliceQuery<K, N, V> sliceQuery) {
         if (type == SliceDataSpecificatorType.COLUMNS) {
             if (columnsArray != null) {
@@ -103,6 +100,7 @@ public class SliceDataSpecificator<N> {
             throw new IllegalStateException("Invalid type: " + type);
         }
     }
+*/
 
     public SliceDataSpecificatorType getType() {
         return type;

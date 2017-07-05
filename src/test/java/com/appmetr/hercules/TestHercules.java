@@ -16,7 +16,7 @@ public abstract class TestHercules {
 
     @BeforeClass
     public static void init() throws Exception {
-        Set<Class> classes = new HashSet<Class>();
+        Set<Class> classes = new HashSet<>();
 
         //Entity
         classes.add(TestEntity.class);
