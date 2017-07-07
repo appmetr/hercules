@@ -2,7 +2,6 @@ package com.appmetr.hercules;
 
 import com.appmetr.hercules.driver.CqlDataDriver;
 import com.appmetr.hercules.driver.DataDriver;
-import com.appmetr.hercules.driver.ThriftDataDriver;
 import com.appmetr.hercules.manager.EntityManager;
 import com.appmetr.hercules.manager.IndexManager;
 import com.appmetr.hercules.manager.WideEntityManager;
