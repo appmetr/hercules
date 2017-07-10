@@ -3,14 +3,20 @@ package com.appmetr.hercules.metadata;
 import com.appmetr.hercules.HerculesConfig;
 import com.appmetr.hercules.annotations.*;
 import com.appmetr.hercules.driver.DataDriver;
+import com.appmetr.hercules.keys.CollectionKeysExtractor;
+import com.appmetr.hercules.keys.EntityCollectionKeyExtractor;
 import com.appmetr.hercules.keys.ForeignKey;
+import com.appmetr.hercules.keys.SerializableKeyCollectionKeyExtractor;
 import com.appmetr.hercules.manager.EntityManager;
+import com.appmetr.hercules.serializers.SerializerProvider;
 import com.datastax.driver.core.TypeCodec;
+import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -20,11 +26,11 @@ import java.util.Set;
  */
 public class EntityMetadataExtractor {
 
-    @Inject HerculesConfig herculesConfig;
-    @Inject EntityManager em;
+    @Inject private HerculesConfig herculesConfig;
+    @Inject private EntityManager em;
     @Inject private DataDriver dataDriver;
-    //@Inject private SerializerProvider serializerProvider;
-    @Inject Injector injector;
+    @Inject private SerializerProvider serializerProvider;
+    @Inject private Injector injector;
 
 
     /**
@@ -189,7 +195,7 @@ public class EntityMetadataExtractor {
     }
 
     private String parseCollectionIndexMetadata(Field field, IndexedCollection indexAnnotation, EntityMetadata metadata) {
-/*
+
         CollectionIndexMetadata indexMetadata = new CollectionIndexMetadata();
         Class<?> itemClass = null;
         if (!Object.class.equals(indexAnnotation.itemClass())) {
@@ -253,7 +259,6 @@ public class EntityMetadataExtractor {
         indexMetadata.setIndexColumnFamily(name);
         metadata.getCollectionIndexes().put(field.getName(), indexMetadata);
         return name;
-        */return null;
     }
 
     private String getColumnName(Field field) {

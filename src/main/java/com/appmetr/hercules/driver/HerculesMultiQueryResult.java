@@ -29,7 +29,7 @@ public class HerculesMultiQueryResult<R, T> {
     }
 
     public void setEntries(LinkedHashMap<R, LinkedHashMap<T, Object>> entries) {
-        this.entries = entries;
+        this.entries.putAll(entries);
         hasResult = true;
     }
 

@@ -351,12 +351,11 @@ public class EntityManager {
     <K> TypeCodec<K> getPrimaryKeySerializer(EntityMetadata metadata) {
         Class keyClass = metadata.getPrimaryKeyMetadata().getKeyClass();
         Class keySerializer = metadata.getPrimaryKeyMetadata().getSerializer();
-
-        return dataDriver.getSerializerForClass(keyClass);
+        return dataDriver.getSerializerForClass(keyClass); //todo check for keyClass
     }
 
     <K> TypeCodec<K> getForeignKeySerializer(ForeignKeyMetadata metadata) {
-        throw new UnsupportedOperationException();
+        return dataDriver.<K>getSerializerForClass(metadata.getKeyClass());
     }
 
     <E, F> F getForeignKeyFromEntity(E entity, EntityMetadata metadata, Class<? extends ForeignKey> foreignKeyClass) {

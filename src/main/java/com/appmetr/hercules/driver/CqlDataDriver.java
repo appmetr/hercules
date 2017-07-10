@@ -10,6 +10,7 @@ import com.appmetr.monblank.StopWatch;
 import com.datastax.driver.core.*;
 import com.datastax.driver.core.querybuilder.*;
 import com.datastax.driver.core.schemabuilder.CreateKeyspace;
+import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -20,11 +21,13 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static com.datastax.driver.core.ConsistencyLevel.QUORUM;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 import static com.datastax.driver.core.schemabuilder.SchemaBuilder.createTable;
 import static com.datastax.driver.core.schemabuilder.SchemaBuilder.dropTable;
+import static java.util.Collections.singletonList;
 
 public class CqlDataDriver implements DataDriver {
 
@@ -81,9 +84,7 @@ public class CqlDataDriver implements DataDriver {
         logger.info("Create column family {} in keyspace {}", cfName, keyspaceName);
 
         MutableBoolean created = new MutableBoolean(false);
-        execute(createTable(keyspaceName, cfName), rc -> {
-            created.setTrue();
-        });
+        execute(createTable(keyspaceName, cfName), rc -> created.setTrue());
 
         return created.booleanValue();
     }
@@ -112,9 +113,7 @@ public class CqlDataDriver implements DataDriver {
         if (!hercules.isSchemaModificationEnabled()) return false;
 
         MutableBoolean deleted = new MutableBoolean(false);
-        execute(dropTable(keyspaceName, quote(cfName)).ifExists(), rs -> {
-            deleted.setTrue();
-        });
+        execute(dropTable(keyspaceName, quote(cfName)).ifExists(), rs -> deleted.setTrue());
         return deleted.booleanValue();
     }
 
@@ -180,9 +179,18 @@ public class CqlDataDriver implements DataDriver {
             select.where(lte(token(primaryKey(keyspace, columnFamily)), token(to)));
         }
         MutableInt totalRows = new MutableInt();
-        execute(select, rs -> {
-            totalRows.add(rs.one().get("count", Integer.class));
-        });
+
+
+        StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Get row count " + columnFamily);
+        try {
+            execute(select, rs -> totalRows.add(rs.one().get("count", Integer.class)));
+        } finally {
+            long time = monitor.stop();
+            if (dataOperationsProfile != null) {
+                dataOperationsProfile.ms += time;
+                dataOperationsProfile.dbQueries++;
+            }
+        }
         return totalRows.intValue();
     }
 
@@ -229,8 +237,25 @@ public class CqlDataDriver implements DataDriver {
                                                          DataOperationsProfile dataOperationsProfile,
                                                          RowSerializer<R, T> rowSerializer,
                                                          Iterable<R> rowKeys) {
-        //todo: required
-        return null;
+        String primaryKey = primaryKey(keyspace, columnFamily);
+        String topKey = topKey(keyspace, columnFamily);
+
+        List<R> keys = new ArrayList<>();
+        rowKeys.forEach(keys::add);
+        List<ByteBuffer> serializedKeys = keys.stream().map(v -> rowSerializer.getRowKeySerializer().serialize(v, protocol())).collect(Collectors.toList());
+
+        HerculesMultiQueryResult<R, T> result = new HerculesMultiQueryResult<>();
+        for (List<ByteBuffer> chunk : Iterables.partition(serializedKeys, 1_000)) {
+            Statement stmt = select()
+                    .from(keyspace, quote(columnFamily))
+                    .where(in(primaryKey, chunk));
+
+            execute(stmt, rs -> {
+                buildQueryResult(primaryKey, topKey, rs, Integer.MAX_VALUE, rowSerializer, result, dataOperationsProfile);
+            });
+        }
+
+        return result;
     }
 
     public <R, T> HerculesMultiQueryResult<R, T> getAllRows(String keyspace,
@@ -260,7 +285,13 @@ public class CqlDataDriver implements DataDriver {
                                                   RowSerializer<R, T> rowSerializer,
                                                   R rowKey,
                                                   SliceDataSpecificator<T> sliceDataSpecificator) {
-        throw new UnsupportedOperationException();
+        HerculesMultiQueryResult<R, T> queryResult = getSlice(keyspace, columnFamily, dataOperationsProfile, rowSerializer, singletonList(rowKey), sliceDataSpecificator);
+
+        if (queryResult.hasResult() && queryResult.containsKey(rowKey)) {
+            return new HerculesQueryResult<T>(queryResult.getEntries().get(rowKey));
+        }
+
+        return new HerculesQueryResult<T>();
     }
 
     public <R, T> HerculesMultiQueryResult<R, T> getSlice(String keyspace,
@@ -348,7 +379,6 @@ public class CqlDataDriver implements DataDriver {
             keys.add(rowSerializer.getRowKeySerializer().deserialize(primaryKeyValue, protocol()));
         }));
         return keys;
-
     }
 
     public <R, T> void insert(String keyspace,
@@ -387,8 +417,13 @@ public class CqlDataDriver implements DataDriver {
     }
 
     public <R, T> void insert(String keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R rowKey, Map<T, Object> values, Map<T, Integer> ttls) {
-
-
+        Map<R, Map<T, Object>> valuesToInsert = Collections.singletonMap(rowKey, values);
+        insert(keyspace, columnFamily, dataOperationsProfile, rowSerializer, valuesToInsert, (row, top) -> {
+            if (ttls == null) {
+                return DataDriver.EMPTY_TTL;
+            }
+            return ttls.getOrDefault(top, DataDriver.EMPTY_TTL);
+        });
     }
 
     public <R, T> void insert(String keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R rowKey, Map<T, Object> values, int ttl) {
@@ -397,22 +432,40 @@ public class CqlDataDriver implements DataDriver {
         insert(keyspace, columnFamily, dataOperationsProfile, rowSerializer, valuesToInsert, (row, top) -> ttl);
     }
 
-    public <R, T> void insert(String keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, Map<R, Map<T, Object>> values, Map<R, Map<T, Integer>> ttls) {
-
+    public <R, T> void insert(String keyspace, String columnFamily,
+                              DataOperationsProfile dataOperationsProfile,
+                              RowSerializer<R, T> rowSerializer,
+                              Map<R, Map<T, Object>> values,
+                              Map<R, Map<T, Integer>> ttls) {
+        insert(keyspace, columnFamily, dataOperationsProfile, rowSerializer, values, (row, top) -> {
+            if (ttls == null) {
+                return DataDriver.EMPTY_TTL;
+            }
+            return ttls
+                    .getOrDefault(row, Collections.emptyMap())
+                    .getOrDefault(top, DataDriver.EMPTY_TTL);
+        });
     }
 
     public <R, T> void delete(String keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R rowKey) {
         execute(QueryBuilder
                 .delete()
                 .from(keyspace, quote(columnFamily))
-                .where(eq("key", rowKey)));
+                .where(eq(primaryKey(keyspace, columnFamily), rowKey)));
     }
 
-    public <R, T> void delete(String keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R rowKey, Iterable<T> topKeys) {
+    public <R, T> void delete(String keyspace, String columnFamily,
+                              DataOperationsProfile dataOperationsProfile,
+                              RowSerializer<R, T> rowSerializer,
+                              R rowKey,
+                              Iterable<T> topKeys) {
         delete(keyspace, columnFamily, dataOperationsProfile, rowSerializer, Collections.singletonMap(rowKey, topKeys));
     }
 
-    public <R, T> void delete(String keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, Map<R, Iterable<T>> topKeysInRows) {
+    public <R, T> void delete(String keyspace, String columnFamily,
+                              DataOperationsProfile dataOperationsProfile,
+                              RowSerializer<R, T> rowSerializer,
+                              Map<R, Iterable<T>> topKeysInRows) {
         String primaryKeyName = primaryKey(keyspace, columnFamily);
         String topKeyName = topKey(keyspace, columnFamily);
 
@@ -435,25 +488,25 @@ public class CqlDataDriver implements DataDriver {
         int serializedDataSize = 0;
         for (R rowKey : values.keySet()) {
             for (Map.Entry<T, Object> entry : values.get(rowKey).entrySet()) {
-                Insert insert =
-                        insertInto(keyspace, "\"" + columnFamily + "\"");
 
+                Insert insert = insertInto(keyspace, quote(columnFamily));
 
-                insert.value("key", rowKeySerializer.serialize(rowKey, protocol()));
+                insert.value(primaryKey(keyspace, columnFamily), rowKeySerializer.serialize(rowKey, protocol()));
                 T topKey = entry.getKey();
                 Object value = entry.getValue();
 
                 if (value == null) {
-                    //  mutator.addDeletion(serializedRowKey, columnFamily, topKey, rowSerializer.getTopKeySerializer());
+                    Delete.Where delete = QueryBuilder
+                            .delete()
+                            .from(keyspace, columnFamily)
+                            .where(eq(primaryKey(keyspace, columnFamily), rowKeySerializer.serialize(rowKey, protocol())));
+                    batch.add(delete);
                 } else {
 
-                    insert.value("column1", topKey);
+                    insert.value(topKey(keyspace, columnFamily), topKey);
                     insert.value("value", rowSerializer.getValueSerializer(topKey).serialize(value, protocol()));
 
-                    int ttl = DataDriver.EMPTY_TTL;
-                    if (ttlProvider != null) {
-                        ttl = ttlProvider.get(rowKey, topKey);
-                    }
+                    int ttl = ttl(ttlProvider, rowKey, topKey);
 
                     if (ttl > 0) {
                         insert.using(timestamp(ttl));
@@ -470,6 +523,7 @@ public class CqlDataDriver implements DataDriver {
     private void buildQueryResult(ResultSet rows, Integer rowCount, Consumer<Row> consumer) {
         int c = 0;
         for (Row row : rows) {
+            prefetch(rows);
             if (c > rowCount) {
                 break;
             }
@@ -477,7 +531,13 @@ public class CqlDataDriver implements DataDriver {
         }
     }
 
-    private <R, T> void buildQueryResult(final String primaryKey, final String topKey,
+    private void prefetch(ResultSet rows) {
+        if (rows.getAvailableWithoutFetching() == 100 && !rows.isFullyFetched())
+            rows.fetchMoreResults(); // this is asynchronous
+    }
+
+    private <R, T> void buildQueryResult(final String primaryKey,
+                                         final String topKey,
                                          ResultSet rows,
                                          Integer rowCount,
                                          RowSerializer<R, T> rowSerializer,
@@ -489,6 +549,7 @@ public class CqlDataDriver implements DataDriver {
         R lastKey = null;
 
         for (Row row : rows) {
+            prefetch(rows);
             T columnName = null;
             Object columnValue = null;
             LinkedHashMap<T, Object> valueMap = new LinkedHashMap<>();
@@ -496,7 +557,9 @@ public class CqlDataDriver implements DataDriver {
             ByteBuffer primaryKeyValue = row.get(primaryKey, codecForColumn(columnDefinitions.getType(primaryKey)));
             lastKey = rowSerializer.getRowKeySerializer().deserialize(primaryKeyValue, protocol());
             T topKeyName = row.get(topKey, codecForColumn(columnDefinitions.getType(topKey)));
-            columnName = topKeyName;
+            columnName = topKeyName instanceof ByteBuffer ?
+                    rowSerializer.getTopKeySerializer().deserialize((ByteBuffer) topKeyName, protocol())
+                    : topKeyName;
 
             ByteBuffer value = row.get("value", TypeCodec.blob());
             TypeCodec valueSerializer = rowSerializer.getValueSerializer(columnName);
@@ -535,6 +598,14 @@ public class CqlDataDriver implements DataDriver {
         return quote(primaryKey.get(0).getName());
     }
 
+    private <R, T> int ttl(TTLProvider<R, T> ttlProvider, R rowKey, T topKey) {
+        int ttl = DataDriver.EMPTY_TTL;
+        if (ttlProvider != null) {
+            ttl = ttlProvider.get(rowKey, topKey);
+        }
+        return ttl;
+    }
+
     private ProtocolVersion protocol() {
         return hercules.getCluster().getConfiguration().getProtocolOptions().getProtocolVersion();
     }
@@ -554,7 +625,7 @@ public class CqlDataDriver implements DataDriver {
             ResultSet rs = session.execute(stmt);
             consumer.accept(rs);
         } catch (Exception e) {
-            logger.error("cannot execute stmt: " + stmt.toString(), e);
+            logger.error("cannot execute stmt: {}", stmt.toString(), e);
         }
     }
 }
