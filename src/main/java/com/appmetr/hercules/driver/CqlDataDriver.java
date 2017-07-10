@@ -42,11 +42,11 @@ public class CqlDataDriver implements DataDriver {
     public Cluster getOrCreateCluster(String clusterName,
                                       String host,
                                       int maxActiveConnections,
-                                      long maxConnectTimeMillis) {
+                                      int maxConnectTimeMillis) {
         return Cluster.builder()
                 .addContactPoint(host)
                 .withQueryOptions(new QueryOptions().setFetchSize(1000))
-                .withSocketOptions(new SocketOptions().setConnectTimeoutMillis(maxActiveConnections))
+                .withSocketOptions(new SocketOptions().setConnectTimeoutMillis(maxConnectTimeMillis))
                 .withClusterName(clusterName)
                 .build();
     }
@@ -240,12 +240,10 @@ public class CqlDataDriver implements DataDriver {
         String primaryKey = primaryKey(keyspace, columnFamily);
         String topKey = topKey(keyspace, columnFamily);
 
-        List<R> keys = new ArrayList<>();
-        rowKeys.forEach(keys::add);
-        List<ByteBuffer> serializedKeys = keys.stream().map(v -> rowSerializer.getRowKeySerializer().serialize(v, protocol())).collect(Collectors.toList());
+        List<ByteBuffer> serializedKeys = serializedKeys(rowKeys, rowSerializer.getRowKeySerializer());
 
         HerculesMultiQueryResult<R, T> result = new HerculesMultiQueryResult<>();
-        for (List<ByteBuffer> chunk : Iterables.partition(serializedKeys, 1_000)) {
+        for (List<ByteBuffer> chunk : Iterables.partition(serializedKeys, 100)) {
             Statement stmt = select()
                     .from(keyspace, quote(columnFamily))
                     .where(in(primaryKey, chunk));
@@ -304,26 +302,38 @@ public class CqlDataDriver implements DataDriver {
         String primaryKey = primaryKey(keyspace, columnFamily);
         String topKey = topKey(keyspace, columnFamily);
 
-        Select select = select().from(keyspace, quote(columnFamily));
-
-        if (rowKeys.iterator().hasNext()) {
-            select.where(in(primaryKey, rowKeys));
-        }
-
-        StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Get range slice " + columnFamily);
+        List<ByteBuffer> serializedKeys = serializedKeys(rowKeys, rowSerializer.getRowKeySerializer());
 
         HerculesMultiQueryResult<R, T> result = new HerculesMultiQueryResult<>();
-        try {
-            execute(select, rs -> buildQueryResult(primaryKey, topKey, rs, Integer.MAX_VALUE, rowSerializer, result, dataOperationsProfile));
-        } finally {
-            long time = monitor.stop();
-            if (dataOperationsProfile != null) {
-                dataOperationsProfile.ms += time;
-                dataOperationsProfile.dbQueries++;
+
+        for (List<ByteBuffer> chunk : Iterables.partition(serializedKeys, 100)) {
+            Select select = select().from(keyspace, quote(columnFamily));
+            select.where(in(primaryKey, chunk));
+
+            StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Get range slice " + columnFamily);
+            try {
+                execute(select, rs -> buildQueryResult(primaryKey, topKey, rs, Integer.MAX_VALUE, rowSerializer, result, dataOperationsProfile));
+            } finally {
+                long time = monitor.stop();
+                if (dataOperationsProfile != null) {
+                    dataOperationsProfile.ms += time;
+                    dataOperationsProfile.dbQueries++;
+                }
             }
         }
-
         return result;
+    }
+
+    private <R> ByteBuffer serializedKey(R rowKey, TypeCodec<R> serializer) {
+        return serializer.serialize(rowKey, protocol());
+    }
+    private <R, T> List<ByteBuffer> serializedKeys(Iterable<R> rowKeys, TypeCodec<R> serializer) {
+        List<R> keys = new ArrayList<>();
+        rowKeys.forEach(keys::add);
+        return keys
+                .stream()
+                .map(v -> serializer.serialize(v, protocol()))
+                .collect(Collectors.toList());
     }
 
     public <R, T> HerculesMultiQueryResult<R, T> getRangeSlice(String keyspace, String columnFamily,
@@ -469,12 +479,13 @@ public class CqlDataDriver implements DataDriver {
         String primaryKeyName = primaryKey(keyspace, columnFamily);
         String topKeyName = topKey(keyspace, columnFamily);
 
+
         for (R rowKey : topKeysInRows.keySet()) {
             Delete.Where delete = QueryBuilder
                     .delete()
                     .from(keyspace, quote(columnFamily))
-                    .where(eq(primaryKeyName, rowKey))
-                    .and(in(topKeyName, topKeysInRows.get(rowKey)));
+                    .where(eq(primaryKeyName, serializedKey(rowKey, rowSerializer.getRowKeySerializer())))
+                    .and(in(topKeyName, serializedKeys(topKeysInRows.get(rowKey), rowSerializer.getTopKeySerializer())));
             execute(delete);
         }
         //todo: make batch, group by row key
@@ -499,7 +510,7 @@ public class CqlDataDriver implements DataDriver {
                     Delete.Where delete = QueryBuilder
                             .delete()
                             .from(keyspace, columnFamily)
-                            .where(eq(primaryKey(keyspace, columnFamily), rowKeySerializer.serialize(rowKey, protocol())));
+                            .where(eq(primaryKey(keyspace, columnFamily), serializedKey(rowKey, rowSerializer.getRowKeySerializer())));
                     batch.add(delete);
                 } else {
 
@@ -518,6 +529,22 @@ public class CqlDataDriver implements DataDriver {
         }
         execute(batch);
 
+    }
+
+    private void execute(Statement stmt) {
+        execute(stmt, rc -> {
+        });
+    }
+
+    private void execute(Statement stmt, Consumer<ResultSet> consumer) {
+        logger.trace("trying to execute stmt {}", stmt);
+        stmt.setConsistencyLevel(QUORUM);
+        try (Session session = hercules.getCluster().newSession()) {
+            ResultSet rs = session.execute(stmt);
+            consumer.accept(rs);
+        } catch (Exception e) {
+            logger.error("cannot execute stmt: {}", stmt.toString(), e);
+        }
     }
 
     private void buildQueryResult(ResultSet rows, Integer rowCount, Consumer<Row> consumer) {
@@ -584,11 +611,6 @@ public class CqlDataDriver implements DataDriver {
         return quote(primaryKey.get(0).getName());
     }
 
-    private void execute(Statement stmt) {
-        execute(stmt, rc -> {
-        });
-    }
-
     private String primaryKey(String keyspace,
                               String columnFamily) {
         List<ColumnMetadata> primaryKey = hercules.getCluster().getMetadata()
@@ -614,19 +636,10 @@ public class CqlDataDriver implements DataDriver {
         return hercules.getCluster().getConfiguration().getCodecRegistry().codecFor(type);
     }
 
+
     private interface TTLProvider<R, T> {
         int get(R row, T top);
-    }
 
-    private void execute(Statement stmt, Consumer<ResultSet> consumer) {
-        logger.trace("trying to execute stmt {}", stmt);
-        stmt.setConsistencyLevel(QUORUM);
-        try (Session session = hercules.getCluster().newSession()) {
-            ResultSet rs = session.execute(stmt);
-            consumer.accept(rs);
-        } catch (Exception e) {
-            logger.error("cannot execute stmt: {}", stmt.toString(), e);
-        }
     }
 }
 

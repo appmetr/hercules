@@ -18,7 +18,7 @@ public interface DataDriver {
 
     Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections);
 
-    Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections, long maxConnectTimeMillis);
+    Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections, int maxConnectTimeMillis);
 
     Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections, long maxConnectTimeMillis, int cassandraThriftSocketTimeout, long maxWaitTimeWhenExhausted);
 

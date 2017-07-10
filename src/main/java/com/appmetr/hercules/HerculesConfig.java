@@ -16,7 +16,7 @@ public class HerculesConfig {
     private int maxActiveConnections;
     private int replicationFactor;
     private Boolean schemaModificationEnabled;
-    private long maxConnectTimeMillis = -1;
+    private int maxConnectTimeMillis = 10_000;
     private int cassandraThriftSocketTimeout;
     private long maxWaitTimeWhenExhausted;
 
@@ -116,11 +116,11 @@ public class HerculesConfig {
         this.wideEntityClasses = wideEntityClasses;
     }
 
-    public long getMaxConnectTimeMillis() {
+    public int getMaxConnectTimeMillis() {
         return maxConnectTimeMillis;
     }
 
-    public void setMaxConnectTimeMillis(long maxConnectTimeMillis) {
+    public void setMaxConnectTimeMillis(int maxConnectTimeMillis) {
         this.maxConnectTimeMillis = maxConnectTimeMillis;
     }
 
