@@ -260,7 +260,7 @@ public class CqlDataDriver implements DataDriver {
                                                             String columnFamily,
                                                             DataOperationsProfile dataOperationsProfile,
                                                             RowSerializer<R, T> rowSerializer) {
-        Statement stmt = select().from(keyspace, quote(columnFamily));
+        Select stmt = select().from(keyspace, quote(columnFamily));
 
         HerculesMultiQueryResult<R, T> results = new HerculesMultiQueryResult<>();
         execute(stmt, rs -> {
@@ -327,6 +327,7 @@ public class CqlDataDriver implements DataDriver {
     private <R> ByteBuffer serializedKey(R rowKey, TypeCodec<R> serializer) {
         return serializer.serialize(rowKey, protocol());
     }
+
     private <R, T> List<ByteBuffer> serializedKeys(Iterable<R> rowKeys, TypeCodec<R> serializer) {
         List<R> keys = new ArrayList<>();
         rowKeys.forEach(keys::add);
@@ -409,7 +410,7 @@ public class CqlDataDriver implements DataDriver {
             if (value == null) {
                 execute(QueryBuilder.delete()
                         .from(keyspace, quote(columnFamily))
-                        .where(eq(primaryKeyName, rowKeyValue)));
+                        .where(eq(primaryKeyName, serializedKey(rowKeyValue, rowSerializer.getRowKeySerializer()))));
             } else {
                 execute(insertInto(keyspace, columnFamily)
                         .value(primaryKeyName, rowKeyValue)
@@ -461,7 +462,7 @@ public class CqlDataDriver implements DataDriver {
         execute(QueryBuilder
                 .delete()
                 .from(keyspace, quote(columnFamily))
-                .where(eq(primaryKey(keyspace, columnFamily), rowKey)));
+                .where(eq(primaryKey(keyspace, columnFamily), serializedKey(rowKey, rowSerializer.getRowKeySerializer()))));
     }
 
     public <R, T> void delete(String keyspace, String columnFamily,
@@ -494,41 +495,39 @@ public class CqlDataDriver implements DataDriver {
     private <R, T> void insert(String keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, Map<R, Map<T, Object>> values, TTLProvider<R, T> ttlProvider) {
         TypeCodec<R> rowKeySerializer = rowSerializer.getRowKeySerializer();
 
-        Batch batch = batch();
+
 
         int serializedDataSize = 0;
         for (R rowKey : values.keySet()) {
+            Batch batch = batch();
             for (Map.Entry<T, Object> entry : values.get(rowKey).entrySet()) {
-
-                Insert insert = insertInto(keyspace, quote(columnFamily));
-
-                insert.value(primaryKey(keyspace, columnFamily), rowKeySerializer.serialize(rowKey, protocol()));
                 T topKey = entry.getKey();
                 Object value = entry.getValue();
 
                 if (value == null) {
                     Delete.Where delete = QueryBuilder
                             .delete()
-                            .from(keyspace, columnFamily)
+                            .from(keyspace, quote(columnFamily))
                             .where(eq(primaryKey(keyspace, columnFamily), serializedKey(rowKey, rowSerializer.getRowKeySerializer())));
                     batch.add(delete);
                 } else {
-
-                    insert.value(topKey(keyspace, columnFamily), topKey);
-                    insert.value("value", rowSerializer.getValueSerializer(topKey).serialize(value, protocol()));
+                    Insert insert =
+                            insertInto(keyspace, quote(columnFamily))
+                                    .value(primaryKey(keyspace, columnFamily), rowKeySerializer.serialize(rowKey, protocol()))
+                                    .value(topKey(keyspace, columnFamily), topKey)
+                                    .value(quote("value"), rowSerializer.getValueSerializer(topKey).serialize(value, protocol()));
 
                     int ttl = ttl(ttlProvider, rowKey, topKey);
 
                     if (ttl > 0) {
                         insert.using(timestamp(ttl));
                     }
-                    SimpleStatement stmt = new SimpleStatement(insert.getQueryString());
-                    batch.add(stmt);
+
+                    batch.add(insert);
                 }
             }
+            execute(batch);
         }
-        execute(batch);
-
     }
 
     private void execute(Statement stmt) {
