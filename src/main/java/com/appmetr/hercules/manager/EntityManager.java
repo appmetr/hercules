@@ -279,7 +279,7 @@ public class EntityManager {
                 if (queryResult.hasResult()) {
                     countEntities(dataOperationsProfile, queryResult.getEntries());
 
-                    oldEntity = (E) this.<E, K>convertToEntity(metadata.getEntityClass(), primaryKey, queryResult.getEntries());
+                    oldEntity = (E) this.convertToEntity(metadata.getEntityClass(), primaryKey, queryResult.getEntries());
                 }
             }
 
@@ -436,7 +436,7 @@ public class EntityManager {
                     hercules.getKeyspace(),
                     PRIMARY_KEY_CF_NAME,
                     dataOperationsProfile,
-                    new ByteArrayRowSerializer<String, K>(TypeCodec.varchar(), this.<K>getPrimaryKeySerializer(metadata)),
+                    new ByteArrayRowSerializer<>(TypeCodec.varchar(), this.<K>getPrimaryKeySerializer(metadata)),
                     metadata.getColumnFamily());
 
             List<E> entities = new ArrayList<>();
@@ -475,8 +475,8 @@ public class EntityManager {
             ForeignKeyMetadata foreignKeyMetadata = metadata.getIndexMetadata(foreignKey.getClass());
 
             HerculesQueryResult<K> queryResult = dataDriver.getSlice(hercules.getKeyspace(), foreignKeyMetadata.getColumnFamily(), dataOperationsProfile,
-                    new ByteArrayRowSerializer<Object, K>(getForeignKeySerializer(metadata.getIndexMetadata(foreignKey.getClass())), this.<K>getPrimaryKeySerializer(metadata)),
-                    foreignKey, new SliceDataSpecificator<K>(null, null, reverse, count));
+                    new ByteArrayRowSerializer<Object, K>(getForeignKeySerializer(metadata.getIndexMetadata(foreignKey.getClass())), this.getPrimaryKeySerializer(metadata)),
+                    foreignKey, new SliceDataSpecificator<>(null, null, reverse, count));
 
             if (queryResult.hasResult()) {
                 countEntities(dataOperationsProfile, queryResult.getEntries());
@@ -484,11 +484,11 @@ public class EntityManager {
                 //filtering using real entity fk
                 Set<K> primaryKeys = queryResult.getEntries().keySet();
                 if (skipKeys != null && !skipKeys.isEmpty()) {
-                    primaryKeys = new HashSet<K>(primaryKeys);
+                    primaryKeys = new HashSet<>(primaryKeys);
                     primaryKeys.removeAll(skipKeys);
                 }
                 List<E> candidates = get(clazz, primaryKeys, dataOperationsProfile);
-                List<E> entities = new ArrayList<E>(candidates.size());
+                List<E> entities = new ArrayList<>(candidates.size());
                 for (E candidate : candidates) {
                     ForeignKey candidateKey = getForeignKeyFromEntity(candidate, metadata, foreignKey.getClass());
                     if (!foreignKey.equals(candidateKey)) {
@@ -520,7 +520,7 @@ public class EntityManager {
             CollectionIndexMetadata indexMetadata = metadata.getCollectionIndexes().get(indexedFieldName);
 
             HerculesQueryResult<K> queryResult = dataDriver.getSlice(hercules.getKeyspace(), indexMetadata.getIndexColumnFamily(), dataOperationsProfile,
-                    new ByteArrayRowSerializer<Object, K>(indexMetadata.getKeyExtractor().getKeySerializer(), this.<K>getPrimaryKeySerializer(metadata)),
+                    new ByteArrayRowSerializer<Object, K>(indexMetadata.getKeyExtractor().getKeySerializer(), this.getPrimaryKeySerializer(metadata)),
                     indexValue, new SliceDataSpecificator<>(null, null, false, count));
 
             if (queryResult.hasResult()) {
