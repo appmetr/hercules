@@ -412,9 +412,9 @@ public class CqlDataDriver implements DataDriver {
                         .from(keyspace, quote(columnFamily))
                         .where(eq(primaryKeyName, serializedKey(rowKeyValue, rowSerializer.getRowKeySerializer()))));
             } else {
-                execute(insertInto(keyspace, columnFamily)
-                        .value(primaryKeyName, rowKeyValue)
-                        .value(topKeyName, topKeyValue)
+                execute(insertInto(keyspace, quote(columnFamily))
+                        .value(primaryKeyName, serializedKey(rowKeyValue, rowSerializer.getRowKeySerializer()))
+                        .value(topKeyName, serializedKey(topKeyValue, rowSerializer.getTopKeySerializer()))
                         .value("value", value));
             }
         } finally {
@@ -508,7 +508,8 @@ public class CqlDataDriver implements DataDriver {
                     Delete.Where delete = QueryBuilder
                             .delete()
                             .from(keyspace, quote(columnFamily))
-                            .where(eq(primaryKey(keyspace, columnFamily), serializedKey(rowKey, rowSerializer.getRowKeySerializer())));
+                            .where(eq(primaryKey(keyspace, columnFamily), serializedKey(rowKey, rowSerializer.getRowKeySerializer())))
+                            .and(eq(topKey(keyspace, columnFamily), serializedKey(topKey, rowSerializer.getTopKeySerializer())));
                     batch.add(delete);
                 } else {
                     Insert insert =
