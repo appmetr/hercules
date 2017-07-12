@@ -244,7 +244,7 @@ public class EntityMetadataExtractor {
                     keysExtractor = new SerializableKeyCollectionKeyExtractor(field, serializerProvider.getSerializer(s.value(), itemClass));
                 } else {
                     //collection of well known objects with hector serializers
-                    keysExtractor = new SerializableKeyCollectionKeyExtractor(field, dataDriver.getSerializerForClass(itemClass));
+                    keysExtractor = new SerializableKeyCollectionKeyExtractor(field, serializerProvider.getSerializer(itemClass));
                 }
             }
         }

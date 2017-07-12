@@ -71,7 +71,6 @@ public class Hercules {
     @Inject private IndexManager indexManager;
     @Inject private MutationsQueue mutationsQueue;
     @Inject private PartitioningStarter partitioningStarter;
-    private Map<Class, TypeCodec> codecByClassType = new HashMap<>();
 
 
     public void init() {
@@ -95,7 +94,6 @@ public class Hercules {
     private void initCodecs() {
         for (TypeCodec typeCodec : config.getCodecs()) {
             cluster.getConfiguration().getCodecRegistry().register(typeCodec);
-            codecByClassType.put(typeCodec.getJavaType().getRawType(), typeCodec);
         }
     }
 
@@ -112,10 +110,6 @@ public class Hercules {
                 .stream()
                 .map(AbstractTableMetadata::getName)
                 .collect(Collectors.toSet());
-    }
-
-    public Map<Class, TypeCodec> getCodecByClassType() {
-        return codecByClassType;
     }
 
     public boolean checkAndCreateColumnFamily(String cfName) {

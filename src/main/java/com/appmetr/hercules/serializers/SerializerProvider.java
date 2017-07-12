@@ -3,6 +3,7 @@ package com.appmetr.hercules.serializers;
 import com.appmetr.hercules.Hercules;
 import com.datastax.driver.core.TypeCodec;
 import com.google.inject.Inject;
+import com.google.inject.Injector;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -10,9 +11,20 @@ import java.util.Date;
 import java.util.UUID;
 
 public class SerializerProvider {
-    @Inject Hercules hercules;
+    @Inject private Hercules hercules;
+    @Inject private Injector injector;
 
-    public <T> TypeCodec<T> getSerializer(Class<? extends TypeCodec> serializerClass, Class valueClass) {
+    public  TypeCodec getSerializer(Class<? extends TypeCodec> serializerClass, Class valueClass) {
+        if (serializerClass != null) {
+            return injector.getInstance(serializerClass);
+        }
+        else {
+            return getSerializer(valueClass);
+        }
+        //todo what will we do with typeCodecs with args. like CompositeString*Codec
+    }
+
+    public  TypeCodec getSerializer(Class valueClass) {
         TypeCodec serializer = null;
         if (valueClass == BigInteger.class) {
             serializer = TypeCodec.varint();
@@ -41,9 +53,8 @@ public class SerializerProvider {
         } else if (valueClass.equals(UUID.class)) {
             serializer = TypeCodec.uuid();
         } else {
-            serializer = hercules.getCodecByClassType().get(valueClass);
+            serializer = hercules.getCluster().getConfiguration().getCodecRegistry().codecFor(valueClass);
         }
-        // Add other serializers here
         return serializer;
     }
 }

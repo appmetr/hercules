@@ -20,8 +20,6 @@ public interface DataDriver {
 
     Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections, int maxConnectTimeMillis);
 
-    Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections, long maxConnectTimeMillis, int cassandraThriftSocketTimeout, long maxWaitTimeWhenExhausted);
-
     void shutdownCluster(Cluster cluster);
 
     String getOrCreateKeyspace(String keyspaceName, int replicationFactor, Cluster cluster);
@@ -31,10 +29,6 @@ public interface DataDriver {
     boolean deleteColumnFamily(Cluster cluster, String keyspaceName, String cfName, boolean awaitAgreement);
 
     boolean deleteColumnFamily(Cluster cluster, String keyspaceName, String cfName);
-
-    <T> TypeCodec<T> getSerializerForObject(Object obj);
-
-    <T> TypeCodec<T> getSerializerForClass(Class clazz);
 
     <R, T> int getRowCount(String keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R from, R to, Integer count);
 

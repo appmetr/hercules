@@ -15,6 +15,7 @@ import com.appmetr.hercules.operations.SaveExecutableOperation;
 import com.appmetr.hercules.partition.NoPartitionProvider;
 import com.appmetr.hercules.partition.PartitionProvider;
 import com.appmetr.hercules.profile.DataOperationsProfile;
+import com.appmetr.hercules.serializers.SerializerProvider;
 import com.appmetr.hercules.wide.SliceDataSpecificator;
 import com.appmetr.hercules.wide.SliceDataSpecificatorByCF;
 import com.appmetr.monblank.Monitoring;
@@ -36,7 +37,7 @@ public class WideEntityManager {
     @Inject private Hercules hercules;
     @Inject private DataDriver dataDriver;
     @Inject private Monitoring monitoring;
-    //@Inject private SerializerProvider serializerProvider;
+    @Inject private SerializerProvider serializerProvider;
     @Inject private EntityListenerInvocationHelper listenerInvocationHelper;
 
     public <E, R, T> E get(Class<E> clazz, R rowKey, T topKey, DataOperationsProfile dataOperationsProfile) {
@@ -509,12 +510,12 @@ public class WideEntityManager {
 
     private <R, T> UniversalRowSerializer<R, T> getRowSerializerForEntity(WideEntityMetadata metadata) {
         TypeCodec rowKeySerializer = metadata.getRowKeyMetadata().getSerializer() == null ?
-                dataDriver.getSerializerForClass(metadata.getRowKeyMetadata().getKeyClass()) :
-                null; //serializerProvider.getSerializer(metadata.getRowKeyMetadata().getSerializer(), metadata.getRowKeyMetadata().getKeyClass());
+                serializerProvider.getSerializer(metadata.getRowKeyMetadata().getKeyClass()) :
+                serializerProvider.getSerializer(metadata.getRowKeyMetadata().getSerializer(), metadata.getRowKeyMetadata().getKeyClass());
 
         TypeCodec topKeySerializer = metadata.getTopKeyMetadata().getSerializer() == null ?
-                dataDriver.getSerializerForClass(metadata.getTopKeyMetadata().getKeyClass()) :
-                null; //serializerProvider.getSerializer(metadata.getTopKeyMetadata().getSerializer(), metadata.getTopKeyMetadata().getKeyClass());
+                serializerProvider.getSerializer(metadata.getTopKeyMetadata().getKeyClass()) :
+                serializerProvider.getSerializer(metadata.getTopKeyMetadata().getSerializer(), metadata.getTopKeyMetadata().getKeyClass());
 
         TypeCodec universalSerializer = null; //serializerProvider.getSerializer(metadata.getEntitySerializer(), metadata.getEntityClass());
 

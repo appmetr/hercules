@@ -15,6 +15,7 @@ import com.appmetr.hercules.metadata.CollectionIndexMetadata;
 import com.appmetr.hercules.metadata.EntityMetadata;
 import com.appmetr.hercules.metadata.ForeignKeyMetadata;
 import com.appmetr.hercules.profile.DataOperationsProfile;
+import com.appmetr.hercules.serializers.SerializerProvider;
 import com.appmetr.hercules.utils.Tuple2;
 import com.appmetr.hercules.wide.SliceDataSpecificator;
 import com.appmetr.monblank.Monitoring;
@@ -40,7 +41,7 @@ public class EntityManager {
     @Inject private Hercules hercules;
     @Inject private DataDriver dataDriver;
     @Inject private IndexManager indexManager;
-    //@Inject private SerializerProvider serializerProvider;
+    @Inject private SerializerProvider serializerProvider;
     @Inject private Monitoring monitoring;
     @Inject private EntityListenerInvocationHelper listenerInvocationHelper;
 
@@ -349,13 +350,13 @@ public class EntityManager {
     }
 
     <K> TypeCodec<K> getPrimaryKeySerializer(EntityMetadata metadata) {
-        Class keyClass = metadata.getPrimaryKeyMetadata().getKeyClass();
+        Class keyClass = metadata.getPrimaryKeyMetadata().getKeyClass();  // todo if class List?
         Class keySerializer = metadata.getPrimaryKeyMetadata().getSerializer();
-        return dataDriver.getSerializerForClass(keyClass); //todo check for keyClass
+        return serializerProvider.getSerializer(keySerializer, keyClass);
     }
 
     <K> TypeCodec<K> getForeignKeySerializer(ForeignKeyMetadata metadata) {
-        return dataDriver.<K>getSerializerForClass(metadata.getKeyClass());
+        return serializerProvider.getSerializer(metadata.getSerializer(), metadata.getKeyClass());
     }
 
     <E, F> F getForeignKeyFromEntity(E entity, EntityMetadata metadata, Class<? extends ForeignKey> foreignKeyClass) {
@@ -561,7 +562,7 @@ public class EntityManager {
 
     private <K> void delete(K primaryKey, EntityMetadata metadata, DataOperationsProfile dataOperationsProfile) {
         dataDriver.delete(hercules.getKeyspace(), metadata.getColumnFamily(), dataOperationsProfile,
-                new ByteArrayRowSerializer<>(this.getPrimaryKeySerializer(metadata), dataDriver.<String>getSerializerForClass(String.class)),
+                new ByteArrayRowSerializer<>(this.getPrimaryKeySerializer(metadata), TypeCodec.varchar()),
                 primaryKey);
     }
 
@@ -705,14 +706,16 @@ public class EntityManager {
     }
 
     private TypeCodec getFieldSerializer(String fieldName, EntityMetadata metadata) {
-        return dataDriver.getSerializerForClass(metadata.getColumnClass(fieldName));
+        return serializerProvider.getSerializer(
+                metadata.getColumnSerializer(fieldName),
+                metadata.getColumnClass(fieldName));
     }
 
     private <K> RowSerializer<K, String> getRowSerializerForEntity(EntityMetadata metadata) {
         Map<String, TypeCodec> columnSerializers = new HashMap<>();
 
         if (metadata.getEntitySerializer() != null) {
-            TypeCodec entitySerializer = dataDriver.getSerializerForClass(metadata.getEntityClass());
+            TypeCodec entitySerializer = serializerProvider.getSerializer(metadata.getEntityClass(), null);
             columnSerializers.put(SERIALIZED_ENTITY_TOP_KEY, entitySerializer);
         } else {
             for (String entry : metadata.getColumnClasses().keySet()) {
