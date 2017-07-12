@@ -1,30 +1,49 @@
 package com.appmetr.hercules.serializers;
 
-import com.appmetr.hercules.Hercules;
 import com.datastax.driver.core.TypeCodec;
-import com.google.inject.Inject;
-import com.google.inject.Injector;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.util.Date;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class SerializerProvider {
-    @Inject private Hercules hercules;
-    @Inject private Injector injector;
 
-    public  TypeCodec getSerializer(Class<? extends TypeCodec> serializerClass, Class valueClass) {
+    public TypeCodec getSerializer(Class<? extends TypeCodec> serializerClass, Class valueClass) {
         if (serializerClass != null) {
-            return injector.getInstance(serializerClass);
-        }
-        else {
+            return tryToCreateObject(serializerClass, valueClass);
+        } else {
             return getSerializer(valueClass);
         }
         //todo what will we do with typeCodecs with args. like CompositeString*Codec
     }
 
-    public  TypeCodec getSerializer(Class valueClass) {
+    private TypeCodec tryToCreateObject(Class<? extends TypeCodec> serializerClass, Class valueClass) {
+        try {
+            Constructor<?>[] constructors = serializerClass.getConstructors();
+            List<Constructor<?>> constructorList = Arrays.stream(constructors)
+                    .sorted(Comparator.comparingInt(Constructor::getParameterCount))
+                    .collect(Collectors.toList());
+            if (constructorList.isEmpty()) {
+                throw new RuntimeException("no available public constructor");
+            }
+            Constructor<?> constructor = constructorList.get(0);
+            switch (constructor.getParameterCount()) {
+                case 0:
+                    return (TypeCodec) constructor.newInstance();
+                case 1:
+                    return (TypeCodec) constructor.newInstance(valueClass);
+                default:
+                    throw new UnsupportedOperationException("don't support constructor with more than 1 arg. available only for " + constructor.getParameterCount());
+            }
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException("cannot construct serializer" + serializerClass, e);
+        }
+    }
+
+    public TypeCodec getSerializer(Class valueClass) {
         TypeCodec serializer = null;
         if (valueClass == BigInteger.class) {
             serializer = TypeCodec.varint();
@@ -52,8 +71,6 @@ public class SerializerProvider {
             serializer = TypeCodec.varchar();
         } else if (valueClass.equals(UUID.class)) {
             serializer = TypeCodec.uuid();
-        } else {
-            serializer = hercules.getCluster().getConfiguration().getCodecRegistry().codecFor(valueClass);
         }
         return serializer;
     }
