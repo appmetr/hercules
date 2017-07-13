@@ -4,6 +4,7 @@ import com.appmetr.hercules.Hercules;
 import com.appmetr.hercules.HerculesMonitoringGroup;
 import com.appmetr.hercules.driver.serializer.RowSerializer;
 import com.appmetr.hercules.profile.DataOperationsProfile;
+import com.appmetr.hercules.serializers.SerializerProvider;
 import com.appmetr.hercules.wide.SliceDataSpecificator;
 import com.appmetr.monblank.Monitoring;
 import com.appmetr.monblank.StopWatch;
@@ -17,7 +18,6 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.function.Consumer;
@@ -33,6 +33,7 @@ public class CqlDataDriver implements DataDriver {
 
     @Inject private Monitoring monitoring;
     @Inject private Hercules hercules;
+    @Inject private SerializerProvider serializerProvider;
     private Logger logger = LoggerFactory.getLogger(CqlDataDriver.class);
 
     public Cluster getOrCreateCluster(String clusterName, String host, int maxActiveConnections) {
@@ -371,10 +372,11 @@ public class CqlDataDriver implements DataDriver {
                         .from(keyspace, quote(columnFamily))
                         .where(eq(primaryKeyName, serializedKey(rowKeyValue, rowSerializer.getRowKeySerializer()))));
             } else {
+                TypeCodec serializer = rowSerializer.hasValueSerializer(topKeyValue) ? rowSerializer.getValueSerializer(topKeyValue) : serializerProvider.getSerializer(value);
                 execute(insertInto(keyspace, quote(columnFamily))
                         .value(primaryKeyName, serializedKey(rowKeyValue, rowSerializer.getRowKeySerializer()))
                         .value(topKeyName, serializedKey(topKeyValue, rowSerializer.getTopKeySerializer()))
-                        .value("value", value));
+                        .value(quote("value"), serializer.serialize(value, protocol())));
             }
         } finally {
             long time = monitor.stop();
@@ -473,9 +475,9 @@ public class CqlDataDriver implements DataDriver {
                 } else {
                     Insert insert =
                             insertInto(keyspace, quote(columnFamily))
-                                    .value(primaryKey(keyspace, columnFamily), rowKeySerializer.serialize(rowKey, protocol()))
-                                    .value(topKey(keyspace, columnFamily), topKey)
-                                    .value(quote("value"), rowSerializer.getValueSerializer(topKey).serialize(value, protocol()));
+                                    .value(primaryKey(keyspace, columnFamily), serializedKey(rowKey, rowKeySerializer))
+                                    .value(topKey(keyspace, columnFamily), serializedKey(topKey, rowSerializer.getTopKeySerializer()))
+                                    .value(quote("value"), serializedValue(rowSerializer, topKey, value));
 
                     int ttl = ttl(ttlProvider, rowKey, topKey);
 
@@ -488,6 +490,10 @@ public class CqlDataDriver implements DataDriver {
             }
             execute(batch);
         }
+    }
+
+    private <R, T> ByteBuffer serializedValue(RowSerializer<R, T> rowSerializer, T topKey, Object value) {
+        return rowSerializer.getValueSerializer(topKey).serialize(value, protocol());
     }
 
     private void execute(Statement stmt) {
@@ -548,10 +554,12 @@ public class CqlDataDriver implements DataDriver {
                     : topKeyName;
 
             ByteBuffer value = row.get("value", TypeCodec.blob());
-            TypeCodec valueSerializer = rowSerializer.getValueSerializer(columnName);
-            columnValue = valueSerializer != null ? valueSerializer.deserialize(value, protocol()) : null;
+            if (rowSerializer.hasValueSerializer(columnName)) {
+                TypeCodec valueSerializer = rowSerializer.getValueSerializer(columnName);
+                columnValue = deserializeValue(value, valueSerializer, dataOperationsProfile);
 
-            valueMap.put(columnName, columnValue);
+                valueMap.put(columnName, columnValue);
+            }
 
             if (result.keySet().size() > rowCount) {
                 break;
@@ -560,6 +568,23 @@ public class CqlDataDriver implements DataDriver {
         }
         results.setEntries(result);
         results.setLastKey(lastKey);
+    }
+
+    private Object deserializeValue(ByteBuffer value, TypeCodec valueSerializer, DataOperationsProfile profile) {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+
+        long bytes = value.remaining();
+
+        Object obj = valueSerializer.deserialize(value, protocol());
+        long time = stopWatch.stop();
+
+        if (profile != null) {
+            profile.bytes += bytes;
+            profile.deserializationMs += time;
+        }
+        return obj;
+
     }
 
     private String topKey(String keyspace, String columnFamily) {
