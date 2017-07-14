@@ -420,18 +420,11 @@ public class CqlDataDriver implements DataDriver {
                     .value(quote("value"), serializedValue)
                     .using(ttl(ttl));
         }
-        execute(session -> {
-                    try {
-                        return session.execute(stmt);
-                    } finally {
-                        long time = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Insert " + columnFamily).stop();
-                        if (profile != null) {
-                            profile.ms += time;
-                            profile.bytes += serializedDataSize.intValue();
-                            profile.dbQueries++;
-                        }
-                    }
-                });
+        profile.bytes += serializedDataSize.intValue();
+        executeAndProfile(
+                stmt,
+                monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Insert " + columnFamily),
+                profile);
 
     }
 
@@ -510,18 +503,12 @@ public class CqlDataDriver implements DataDriver {
                     batch.add(insert);
                 }
             }
-            execute(session -> {
-                try {
-                    return session.execute(batch);
-                } finally {
-                    long time = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Insert " + columnFamily).stop();
-                    if (profile != null) {
-                        profile.ms += time;
-                        profile.bytes += serializedDataSize.intValue();
-                        profile.dbQueries++;
-                    }
-                }
-            });
+            profile.bytes += serializedDataSize.intValue();
+            executeAndProfile(
+                    batch,
+                    monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Insert " + columnFamily),
+                    profile
+            );
         }
     }
 
@@ -577,6 +564,8 @@ public class CqlDataDriver implements DataDriver {
         try (Session session = hercules.getCluster().newSession()) {
             ResultSet rs = f.apply(session);
             consumer.accept(rs);
+        } catch (Exception e) {
+            logger.error("cannot query and build results", e);
         }
     }
 
