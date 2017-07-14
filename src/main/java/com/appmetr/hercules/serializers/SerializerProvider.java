@@ -13,8 +13,8 @@ public class SerializerProvider {
 
     @SuppressWarnings("unchecked")
     public TypeCodec getSerializer(Class<? extends TypeCodec> serializerClass, Class valueClass) {
-        if (valueClass != null && valueClass.getClass().isEnum()) {
-            return new EnumSerializer(valueClass.getClass());
+        if (valueClass != null && valueClass.isEnum()) {
+            return new EnumSerializer(valueClass);
         }
         if (serializerClass != null) {
             return tryToCreateObject(serializerClass, valueClass);
@@ -27,16 +27,13 @@ public class SerializerProvider {
     public TypeCodec getSerializer(Object value) {
         if (value == null) return TypeCodec.blob();
 
-        if (value.getClass().isEnum()) {
-            return new EnumSerializer(value.getClass());
-        }
         return getSerializer(value.getClass());
     }
 
     @SuppressWarnings("unchecked")
     public TypeCodec getSerializer(Class valueClass) {
-        if (valueClass != null && valueClass.getClass().isEnum()) {
-            return new EnumSerializer(valueClass.getClass());
+        if (valueClass != null && valueClass.isEnum()) {
+            return new EnumSerializer(valueClass);
         }
         TypeCodec serializer = null;
         if (valueClass == null) {

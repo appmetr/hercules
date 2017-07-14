@@ -624,6 +624,9 @@ public class CqlDataDriver implements DataDriver {
             ByteBuffer value = row.get("value", TypeCodec.blob());
             if (rowSerializer.hasValueSerializer(columnName)) {
                 TypeCodec valueSerializer = rowSerializer.getValueSerializer(columnName);
+                if (valueSerializer == null) {
+                    throw new NullPointerException("unknown valuer serializer for " + columnName);
+                }
                 columnValue = deserializeValue(value, valueSerializer, dataOperationsProfile);
 
                 valueMap.put(columnName, columnValue);
