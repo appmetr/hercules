@@ -38,7 +38,7 @@ public class TestCollectionIndexes extends TestHercules {
         entityKey.id = "entityKey!11!";
         testEntity.getEntities().add(entityKey);
         keys.put("entities", entityKey.id);
-        serializers.put("entities", TypeCodec.class);
+        serializers.put("entities", TypeCodec.varchar().getClass());
 
         ParentFK parentFk = new ParentFK("parentFKKey");
         testEntity.getSerializableKeys().add(parentFk);
@@ -53,7 +53,7 @@ public class TestCollectionIndexes extends TestHercules {
         String keyInJson = "keyInjson2121";
         testEntity.setJsonCollection("{" + keyInJson + "}");
         keys.put("jsonCollection", keyInJson);
-        serializers.put("jsonCollection", TypeCodec.class);
+        serializers.put("jsonCollection", TypeCodec.varchar().getClass());
 
 
         for (Map.Entry<String, CollectionIndexMetadata> indexMetadata : collIndexes.entrySet()) {

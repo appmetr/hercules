@@ -10,8 +10,8 @@ import java.nio.ByteBuffer;
 
 public class ParentFKSerializer extends TypeCodec<ParentFK> {
 
-    protected ParentFKSerializer(DataType cqlType, Class<ParentFK> javaClass) {
-        super(cqlType, javaClass);
+    public ParentFKSerializer(Class<ParentFK> javaClass) {
+        super(DataType.text(), javaClass);
     }
 
     @Override public ByteBuffer serialize(ParentFK parentFK, ProtocolVersion protocolVersion) throws InvalidTypeException {

@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 
 public class ByteArrayCodec extends TypeCodec<byte[]>{
 
-    private static TypeCodec instance = new ByteArrayCodec();
+    private static TypeCodec<byte[]> instance = new ByteArrayCodec();
 
     private ByteArrayCodec() {
         super(DataType.blob(), byte[].class);
@@ -39,7 +39,7 @@ public class ByteArrayCodec extends TypeCodec<byte[]>{
         throw new UnsupportedOperationException();
     }
 
-    public static TypeCodec bytearray() {
+    public static TypeCodec<byte[]> bytearray() {
         return instance;
     }
 }

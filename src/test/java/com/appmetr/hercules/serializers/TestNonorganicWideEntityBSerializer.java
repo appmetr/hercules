@@ -10,8 +10,8 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 import java.nio.ByteBuffer;
 
 public class TestNonorganicWideEntityBSerializer extends TypeCodec<TestNonorganicWideEntityB> {
-    protected TestNonorganicWideEntityBSerializer(DataType cqlType, Class<TestNonorganicWideEntityB> javaClass) {
-        super(cqlType, javaClass);
+    protected TestNonorganicWideEntityBSerializer() {
+        super(DataType.blob(), TestNonorganicWideEntityB.class);
     }
 
     @Override public ByteBuffer serialize(TestNonorganicWideEntityB testNonorganicWideEntityB, ProtocolVersion protocolVersion) throws InvalidTypeException {

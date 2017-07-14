@@ -517,7 +517,7 @@ public class WideEntityManager {
                 serializerProvider.getSerializer(metadata.getTopKeyMetadata().getKeyClass()) :
                 serializerProvider.getSerializer(metadata.getTopKeyMetadata().getSerializer(), metadata.getTopKeyMetadata().getKeyClass());
 
-        TypeCodec universalSerializer = null; //serializerProvider.getSerializer(metadata.getEntitySerializer(), metadata.getEntityClass());
+        TypeCodec universalSerializer = serializerProvider.getSerializer(metadata.getEntitySerializer(), metadata.getEntityClass());
 
 
         return new UniversalRowSerializer<R, T>(rowKeySerializer, topKeySerializer, universalSerializer);

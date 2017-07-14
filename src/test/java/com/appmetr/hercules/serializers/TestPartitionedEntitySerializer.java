@@ -11,9 +11,8 @@ import java.nio.ByteBuffer;
 
 public class TestPartitionedEntitySerializer extends TypeCodec<TestPartitionedEntity> {
 
-
-    protected TestPartitionedEntitySerializer(DataType cqlType, Class<TestPartitionedEntity> javaClass) {
-        super(cqlType, javaClass);
+    protected TestPartitionedEntitySerializer() {
+        super(DataType.blob(), TestPartitionedEntity.class);
     }
 
     @Override public ByteBuffer serialize(TestPartitionedEntity obj, ProtocolVersion protocolVersion) throws InvalidTypeException {

@@ -80,7 +80,7 @@ public class SerializerProvider {
                     .sorted(Comparator.comparingInt(Constructor::getParameterCount))
                     .collect(Collectors.toList());
             if (constructorList.isEmpty()) {
-                throw new RuntimeException("no available public constructor");
+                throw new RuntimeException("no available public constructor for + " + serializerClass);
             }
             Constructor<?> constructor = constructorList.get(0);
             switch (constructor.getParameterCount()) {

@@ -11,13 +11,8 @@ import java.nio.ByteBuffer;
 
 public class TestDatedColumnSerializer extends TypeCodec<TestDatedColumn> {
 
-
-    protected TestDatedColumnSerializer(DataType cqlType, Class<TestDatedColumn> javaClass) {
-        super(cqlType, javaClass);
-    }
-
-    protected TestDatedColumnSerializer(DataType cqlType, TypeToken<TestDatedColumn> javaType) {
-        super(cqlType, javaType);
+    public TestDatedColumnSerializer() {
+        super(DataType.bigint(), TestDatedColumn.class);
     }
 
     @Override public ByteBuffer serialize(TestDatedColumn obj, ProtocolVersion protocolVersion) throws InvalidTypeException {
