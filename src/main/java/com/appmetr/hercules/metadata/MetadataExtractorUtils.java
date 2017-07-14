@@ -4,12 +4,13 @@ import com.appmetr.hercules.annotations.Serializer;
 import com.appmetr.hercules.annotations.TimeToLive;
 import com.appmetr.hercules.annotations.comparator.EntityComparatorType;
 import com.appmetr.hercules.annotations.listeners.*;
-import me.prettyprint.hector.api.ddl.ComparatorType;
+
 
 import java.lang.reflect.Method;
 
 public class MetadataExtractorUtils {
     public static void setEntityComparatorType(Class<?> clazz, AbstractMetadata metadata, EntityComparatorType entityComparatorType) {
+/*
         if (entityComparatorType.equals(EntityComparatorType.ASCIITYPE)) {
             metadata.setComparatorType(ComparatorType.ASCIITYPE);
         } else if (entityComparatorType.equals(EntityComparatorType.BOOLEANTYPE)) {
@@ -49,6 +50,7 @@ public class MetadataExtractorUtils {
         } else {
             throw new RuntimeException("Bad ComparatorType for class " + clazz.getSimpleName());
         }
+*/
     }
 
     public static void setEntitySerializer(Class<?> clazz, AbstractMetadata metadata) {

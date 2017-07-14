@@ -1,11 +1,11 @@
 package com.appmetr.hercules.driver.serializer;
 
-import me.prettyprint.hector.api.Serializer;
+import com.datastax.driver.core.TypeCodec;
 
 public class UniversalRowSerializer<R, T> extends AbstractRowSerializer<R, T> {
-    Serializer universalSerializer;
+    TypeCodec universalSerializer;
 
-    public UniversalRowSerializer(Serializer<R> rowKeySerializer, Serializer<T> topKeySerializer, Serializer universalSerializer) {
+    public UniversalRowSerializer(TypeCodec<R> rowKeySerializer, TypeCodec<T> topKeySerializer, TypeCodec universalSerializer) {
         super(rowKeySerializer, topKeySerializer);
 
         this.universalSerializer = universalSerializer;
@@ -15,7 +15,7 @@ public class UniversalRowSerializer<R, T> extends AbstractRowSerializer<R, T> {
         return true;
     }
 
-    @Override public Serializer getValueSerializer(T topKey) {
+    @Override public TypeCodec getValueSerializer(T topKey) {
         return universalSerializer;
     }
 }

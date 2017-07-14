@@ -28,11 +28,7 @@ public class TestSelectiveSave extends TestHercules {
         entity.longValue = 64L;
 
         //selective
-        dao.save(entity, new FieldFilter() {
-            @Override public boolean accept(Field field) {
-                return "stringValue".equals(field.getName());
-            }
-        });
+        dao.save(entity, field -> "stringValue".equals(field.getName()));
 
         //reload
         entity = dao.get(entity.id);

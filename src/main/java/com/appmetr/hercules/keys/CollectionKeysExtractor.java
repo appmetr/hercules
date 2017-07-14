@@ -1,11 +1,11 @@
 package com.appmetr.hercules.keys;
 
-import me.prettyprint.hector.api.Serializer;
+import com.datastax.driver.core.TypeCodec;
 
 public interface CollectionKeysExtractor<E, K> {
 
     Iterable<K> extractKeys(E entity);
 
-    Serializer<K> getKeySerializer();
+    TypeCodec<K> getKeySerializer();
 
 }

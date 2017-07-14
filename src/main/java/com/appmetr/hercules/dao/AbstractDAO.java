@@ -20,11 +20,7 @@ public abstract class AbstractDAO<E, K> {
     private HerculesProvider provider;
 
     public AbstractDAO(Class<E> entityClass, final Hercules hercules) {
-        this(entityClass, new HerculesProvider() {
-            @Override public Hercules getHercules() {
-                return hercules;
-            }
-        });
+        this(entityClass, () -> hercules);
     }
 
     public AbstractDAO(Class<E> entityClass, HerculesProvider provider) {
@@ -253,7 +249,7 @@ public abstract class AbstractDAO<E, K> {
     }
 
     public int processRange(K from, K to, Integer batchSize, BatchProcessor<E> processor, DataOperationsProfile dataOperationsProfile) {
-        return new BatchExecutor<E, K>(new DAOBatchIterator<E, K>(this, from, to, batchSize), processor).execute(dataOperationsProfile);
+        return new BatchExecutor<>(new DAOBatchIterator<>(this, from, to, batchSize), processor).execute(dataOperationsProfile);
     }
 
     public int processAllKeys(BatchProcessor<K> processor) {
@@ -277,7 +273,7 @@ public abstract class AbstractDAO<E, K> {
     }
 
     public int processKeyRange(K from, K to, Integer batchSize, BatchProcessor<K> processor, DataOperationsProfile dataOperationsProfile) {
-        return new BatchExecutor<K, K>(new ImmutableKeyBatchIterator<K>(from, to, batchSize) {
+        return new BatchExecutor<>(new ImmutableKeyBatchIterator<K>(from, to, batchSize) {
             @Override
             public List<K> getRange(K from, K to, int batchSize, DataOperationsProfile dataOperationsProfile) {
                 return getHercules().getEntityManager().getKeyRange(entityClass, from, to, batchSize, dataOperationsProfile);

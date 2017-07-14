@@ -1,39 +1,41 @@
 package com.appmetr.hercules.serializers;
 
 import com.appmetr.hercules.column.TestDatedColumn;
-import me.prettyprint.cassandra.serializers.LongSerializer;
-import me.prettyprint.hector.api.ddl.ComparatorType;
+import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.ProtocolVersion;
+import com.datastax.driver.core.TypeCodec;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
+import com.google.common.reflect.TypeToken;
 
 import java.nio.ByteBuffer;
 
-import static me.prettyprint.hector.api.ddl.ComparatorType.LONGTYPE;
+public class TestDatedColumnSerializer extends TypeCodec<TestDatedColumn> {
 
-public class TestDatedColumnSerializer extends AbstractHerculesSerializer<TestDatedColumn> {
-
-    private static final TestDatedColumnSerializer instance = new TestDatedColumnSerializer();
-
-    public static TestDatedColumnSerializer get() {
-        return instance;
+    public TestDatedColumnSerializer() {
+        super(DataType.bigint(), TestDatedColumn.class);
     }
 
-    @Override public ByteBuffer toByteBuffer(TestDatedColumn obj) {
+    @Override public ByteBuffer serialize(TestDatedColumn obj, ProtocolVersion protocolVersion) throws InvalidTypeException {
         if (obj == null) {
             return null;
         }
         Long date = obj.getDate();
-        return LongSerializer.get().toByteBuffer(date);
+        return TypeCodec.bigint().serialize(date, protocolVersion);
     }
 
-    @Override public TestDatedColumn fromByteBuffer(ByteBuffer byteBuffer) {
+    @Override public TestDatedColumn deserialize(ByteBuffer byteBuffer, ProtocolVersion protocolVersion) throws InvalidTypeException {
         if (byteBuffer == null) {
             return null;
         }
-        Long date = LongSerializer.get().fromByteBuffer(byteBuffer);
+        Long date = TypeCodec.bigint().deserialize(byteBuffer, protocolVersion);
         return new TestDatedColumn(date);
     }
 
-    @Override
-    public ComparatorType getComparatorType() {
-        return LONGTYPE;
+    @Override public TestDatedColumn parse(String s) throws InvalidTypeException {
+        return null;
+    }
+
+    @Override public String format(TestDatedColumn testDatedColumn) throws InvalidTypeException {
+        return null;
     }
 }

@@ -26,16 +26,16 @@ public class DatePartiotionProvider<T extends DatedColumn> extends TopKeyPartiot
 
         List<SliceDataSpecificatorByCF<T>> queries = getDatePartitionedQueries(sliceDataSpecificator, partsConfig);
 
-        List<SliceDataSpecificatorByCF<T>> rowQueries = new ArrayList<SliceDataSpecificatorByCF<T>>();
+        List<SliceDataSpecificatorByCF<T>> rowQueries = new ArrayList<>();
         for (SliceDataSpecificatorByCF<T> query : queries) {
 
-            rowQueries.add(new SliceDataSpecificatorByCF<T>(query.getPartitionName(), query.getSliceDataSpecificator()));
+            rowQueries.add(new SliceDataSpecificatorByCF<>(query.getPartitionName(), query.getSliceDataSpecificator()));
         }
         return rowQueries;
     }
 
     @Override public List<String> getPartitionsForCreation() {
-        List<String> foundPartitions = new ArrayList<String>();
+        List<String> foundPartitions = new ArrayList<>();
 
         List<DatePartition> partitions = getPartitionsList(partsConfig);
         for (DatePartition partition : partitions) {
@@ -52,22 +52,22 @@ public class DatePartiotionProvider<T extends DatedColumn> extends TopKeyPartiot
     private <T extends DatedColumn<T>> List<SliceDataSpecificatorByCF<T>> getDatePartitionedQueries(
             SliceDataSpecificator<T> sliceDataSpecificator, DatePartsConfig partsConfig) {
 
-        List<SliceDataSpecificatorByCF<T>> parts = new ArrayList<SliceDataSpecificatorByCF<T>>();
+        List<SliceDataSpecificatorByCF<T>> parts = new ArrayList<>();
 
         List<DatePartition> partitions = getPartitionsList(partsConfig);
 
         if (sliceDataSpecificator.getType() == SliceDataSpecificator.SliceDataSpecificatorType.RANGE) {
 
-            DateSegment<T> sliceSegment = new DateSegment<T>(sliceDataSpecificator);
+            DateSegment<T> sliceSegment = new DateSegment<>(sliceDataSpecificator);
 
             for (DatePartition partition : partitions) {
 
-                DateSegment<T> partitionSegment = new DateSegment<T>(partition.getFrom().getMillis(), partition.getTo().getMillis());
+                DateSegment<T> partitionSegment = new DateSegment<>(partition.getFrom().getMillis(), partition.getTo().getMillis());
                 DateSegment<T> intersectSegment = partitionSegment.intersection(sliceSegment);
                 if (intersectSegment.isValid()) {
 
                     SliceDataSpecificator<T> intersectSlice = intersectSegment.toSliceDataSpecificator(sliceDataSpecificator.isOrderDesc(), 0);
-                    parts.add(new SliceDataSpecificatorByCF<T>(
+                    parts.add(new SliceDataSpecificatorByCF<>(
                             getPartitionName(partition),
                             intersectSlice
                     ));
@@ -75,7 +75,7 @@ public class DatePartiotionProvider<T extends DatedColumn> extends TopKeyPartiot
             }
 
             if (sliceDataSpecificator.isOrderDesc()) {
-                List<SliceDataSpecificatorByCF<T>> reverseParts = new ArrayList<SliceDataSpecificatorByCF<T>>(parts.size());
+                List<SliceDataSpecificatorByCF<T>> reverseParts = new ArrayList<>(parts.size());
                 for (int i = parts.size() - 1; i >= 0; i--) {
                     reverseParts.add(parts.get(i));
                 }
@@ -85,8 +85,8 @@ public class DatePartiotionProvider<T extends DatedColumn> extends TopKeyPartiot
         } else if (sliceDataSpecificator.getType() == SliceDataSpecificator.SliceDataSpecificatorType.COLUMNS) {
 
             TreeSet<T> columns = sliceDataSpecificator.getColumnsArray() != null ?
-                    new TreeSet<T>(Arrays.asList(sliceDataSpecificator.getColumnsArray())) :
-                    new TreeSet<T>(sliceDataSpecificator.getColumnsCollection());
+                    new TreeSet<>(Arrays.asList(sliceDataSpecificator.getColumnsArray())) :
+                    new TreeSet<>(sliceDataSpecificator.getColumnsCollection());
 
             for (DatePartition partition : partitions) {
 
@@ -94,7 +94,7 @@ public class DatePartiotionProvider<T extends DatedColumn> extends TopKeyPartiot
                     break;
                 }
 
-                Set<T> partColumns = new TreeSet<T>();
+                Set<T> partColumns = new TreeSet<>();
                 for (T column : columns) {
                     if (column.getDate() >= partition.getFrom().getMillis() && column.getDate() <= partition.getTo().getMillis()) {
                         partColumns.add(column);
@@ -104,9 +104,9 @@ public class DatePartiotionProvider<T extends DatedColumn> extends TopKeyPartiot
                 if (partColumns.size() > 0) {
 
                     columns.removeAll(partColumns);
-                    parts.add(new SliceDataSpecificatorByCF<T>(
+                    parts.add(new SliceDataSpecificatorByCF<>(
                             getPartitionName(partition),
-                            new SliceDataSpecificator<T>(partColumns)
+                            new SliceDataSpecificator<>(partColumns)
                     ));
                 }
             }
@@ -126,7 +126,7 @@ public class DatePartiotionProvider<T extends DatedColumn> extends TopKeyPartiot
         DateTime from = new DateTime(0, DateTimeZone.UTC);
         DateTime to = partsConfig.getPartsStart().withZone(DateTimeZone.UTC);
 
-        List<DatePartition> partitions = new ArrayList<DatePartition>();
+        List<DatePartition> partitions = new ArrayList<>();
 
         while (!to.isAfter(endByCurrTime)) {
             partitions.add(new DatePartition(from, to.minusMillis(1)));

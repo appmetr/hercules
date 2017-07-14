@@ -1,20 +1,37 @@
 package com.appmetr.hercules.serializers;
 
 import com.appmetr.hercules.model.TestWideEntity;
+
 import com.appmetr.hercules.utils.SerializationUtils;
-import me.prettyprint.cassandra.serializers.BytesArraySerializer;
+import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.ProtocolVersion;
+import com.datastax.driver.core.TypeCodec;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
+
 
 import java.nio.ByteBuffer;
 
-public class TestWideEntitySerializer extends AbstractHerculesSerializer<TestWideEntity> {
-    @Override public ByteBuffer toByteBuffer(TestWideEntity obj) {
-        return ByteBuffer.wrap(SerializationUtils.serialize(obj));
+public class TestWideEntitySerializer extends TypeCodec<TestWideEntity> {
+    public TestWideEntitySerializer() {
+        super(DataType.blob(), TestWideEntity.class);
     }
 
-    @Override public TestWideEntity fromByteBuffer(ByteBuffer byteBuffer) {
+    @Override public ByteBuffer serialize(TestWideEntity testWideEntity, ProtocolVersion protocolVersion) throws InvalidTypeException {
+        return ByteArrayCodec.bytearray().serialize(SerializationUtils.serialize(testWideEntity), protocolVersion);
+    }
+
+    @Override public TestWideEntity deserialize(ByteBuffer byteBuffer, ProtocolVersion protocolVersion) throws InvalidTypeException {
         TestWideEntity entity = new TestWideEntity();
-        SerializationUtils.deserialize(BytesArraySerializer.get().fromByteBuffer(byteBuffer), entity);
+        SerializationUtils.deserialize(ByteArrayCodec.bytearray().deserialize(byteBuffer, protocolVersion), entity);
 
         return entity;
+    }
+
+    @Override public TestWideEntity parse(String s) throws InvalidTypeException {
+        return null;
+    }
+
+    @Override public String format(TestWideEntity testWideEntity) throws InvalidTypeException {
+        return null;
     }
 }

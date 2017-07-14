@@ -28,7 +28,7 @@ public class DateSegment<TDatedColumn extends DatedColumn<TDatedColumn>> {
 
     public DateSegment<TDatedColumn> intersection(DateSegment<TDatedColumn> segment) {
 
-        DateSegment<TDatedColumn> intersection = new DateSegment<TDatedColumn>();
+        DateSegment<TDatedColumn> intersection = new DateSegment<>();
 
         if (from == null && segment.from == null) {
             intersection.from = null;
@@ -97,11 +97,11 @@ public class DateSegment<TDatedColumn extends DatedColumn<TDatedColumn>> {
     }
 
     public boolean contains(Long point) {
-        return intersection(new DateSegment<TDatedColumn>(point, point)).isValid();
+        return intersection(new DateSegment<>(point, point)).isValid();
     }
 
     public SliceDataSpecificator<TDatedColumn> toSliceDataSpecificator(boolean orderDesc, int limit) {
-        return new SliceDataSpecificator<TDatedColumn>(fromColumn, toColumn, orderDesc, limit);
+        return new SliceDataSpecificator<>(fromColumn, toColumn, orderDesc, limit);
     }
 
     public Long getFrom() {

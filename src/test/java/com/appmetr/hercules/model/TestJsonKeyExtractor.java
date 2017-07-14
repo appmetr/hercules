@@ -1,9 +1,9 @@
 package com.appmetr.hercules.model;
 
 import com.appmetr.hercules.keys.CollectionKeysExtractor;
-import me.prettyprint.cassandra.serializers.StringSerializer;
-import me.prettyprint.hector.api.Serializer;
-import org.apache.commons.lang.StringUtils;
+import com.datastax.driver.core.TypeCodec;
+import org.apache.commons.lang3.StringUtils;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,15 +14,15 @@ public class TestJsonKeyExtractor implements CollectionKeysExtractor<EntityWithC
         users = users.substring(1, users.length() - 1);
         String[] keys = users.split(",");
 
-        List<String> resultKeys = new ArrayList<String>(keys.length);
+        List<String> resultKeys = new ArrayList<>(keys.length);
         for (String k : keys) {
             resultKeys.add(k.trim());
         }
         return resultKeys;
     }
 
-    @Override public Serializer<String> getKeySerializer() {
-        return new StringSerializer();
+    @Override public TypeCodec<String> getKeySerializer() {
+        return TypeCodec.varchar();
     }
 
 }

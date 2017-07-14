@@ -1,16 +1,95 @@
 package com.appmetr.hercules.serializers;
 
-import com.google.inject.Inject;
-import com.google.inject.Injector;
+import com.datastax.driver.core.TypeCodec;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class SerializerProvider {
-    @Inject Injector injector;
 
-    public <T> AbstractHerculesSerializer<T> getSerializer(Class<? extends AbstractHerculesSerializer> serializerClass, Class instanceClass) {
-        AbstractHerculesSerializer<T> serializer = (AbstractHerculesSerializer<T>) injector.getInstance(serializerClass);
+    @SuppressWarnings("unchecked")
+    public TypeCodec getSerializer(Class<? extends TypeCodec> serializerClass, Class valueClass) {
+        if (valueClass != null && valueClass.isEnum()) {
+            return new EnumSerializer(valueClass);
+        }
+        if (serializerClass != null) {
+            return tryToCreateObject(serializerClass, valueClass);
+        } else {
+            return getSerializer(valueClass);
+        }
+    }
 
-        serializer.setInstanceClass(instanceClass);
+    @SuppressWarnings("unchecked")
+    public TypeCodec getSerializer(Object value) {
+        if (value == null) return TypeCodec.blob();
 
+        return getSerializer(value.getClass());
+    }
+
+    @SuppressWarnings("unchecked")
+    public TypeCodec getSerializer(Class valueClass) {
+        if (valueClass != null && valueClass.isEnum()) {
+            return new EnumSerializer(valueClass);
+        }
+        TypeCodec serializer = null;
+        if (valueClass == null) {
+            serializer = TypeCodec.blob();
+        } else if (valueClass == BigInteger.class) {
+            serializer = TypeCodec.varint();
+        } else if (valueClass.equals(byte[].class)) {
+            serializer = ByteArrayCodec.bytearray();
+        }else if (valueClass.equals(Boolean.class) || valueClass.equals(boolean.class)) {
+            serializer = TypeCodec.cboolean();
+        } else if (valueClass.equals(byte[].class)) {
+            serializer = TypeCodec.blob();
+        } else if (valueClass.equals(ByteBuffer.class)) {
+            serializer = TypeCodec.blob();
+        } else if (valueClass.equals(Character.class)) {
+            serializer = TypeCodec.varchar();
+        } else if (valueClass.equals(Date.class)) {
+            serializer = TypeCodec.timestamp();
+        } else if (valueClass.equals(Double.class) || valueClass.equals(double.class)) {
+            serializer = TypeCodec.cdouble();
+        } else if (valueClass.equals(Float.class) || valueClass.equals(float.class)) {
+            serializer = TypeCodec.cfloat();
+        } else if (valueClass.equals(Integer.class) || valueClass.equals(int.class)) {
+            serializer = TypeCodec.cint();
+        } else if (valueClass.equals(Long.class) || valueClass.equals(long.class)) {
+            serializer = TypeCodec.bigint();
+        } else if (valueClass.equals(Short.class) || valueClass.equals(short.class)) {
+            serializer = TypeCodec.smallInt();
+        } else if (valueClass.equals(String.class)) {
+            serializer = TypeCodec.varchar();
+        } else if (valueClass.equals(UUID.class)) {
+            serializer = TypeCodec.uuid();
+        }
         return serializer;
+    }
+
+    private TypeCodec tryToCreateObject(Class<? extends TypeCodec> serializerClass, Class valueClass) {
+        try {
+            Constructor<?>[] constructors = serializerClass.getConstructors();
+            List<Constructor<?>> constructorList = Arrays.stream(constructors)
+                    .sorted(Comparator.comparingInt(Constructor::getParameterCount))
+                    .collect(Collectors.toList());
+            if (constructorList.isEmpty()) {
+                throw new RuntimeException("no available public constructor for + " + serializerClass);
+            }
+            Constructor<?> constructor = constructorList.get(0);
+            switch (constructor.getParameterCount()) {
+                case 0:
+                    return (TypeCodec) constructor.newInstance();
+                case 1:
+                    return (TypeCodec) constructor.newInstance(valueClass);
+                default:
+                    throw new UnsupportedOperationException("don't support constructor with more than 1 arg. available only for " + constructor.getParameterCount());
+            }
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException("cannot construct serializer" + serializerClass, e);
+        }
     }
 }

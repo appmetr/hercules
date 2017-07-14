@@ -1,10 +1,10 @@
 package com.appmetr.hercules.driver.serializer;
 
-import me.prettyprint.hector.api.Serializer;
+import com.datastax.driver.core.TypeCodec;
 
 public interface RowSerializer<K, T> {
-    public Serializer<K> getRowKeySerializer();
-    public Serializer<T> getTopKeySerializer();
-    public boolean hasValueSerializer(T topKey);
-    public Serializer getValueSerializer(T topKey);
+    TypeCodec<K> getRowKeySerializer();
+    TypeCodec<T> getTopKeySerializer();
+    boolean hasValueSerializer(T topKey);
+    TypeCodec getValueSerializer(T topKey);
 }

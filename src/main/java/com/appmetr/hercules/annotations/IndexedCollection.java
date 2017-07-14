@@ -1,7 +1,7 @@
 package com.appmetr.hercules.annotations;
 
 import com.appmetr.hercules.keys.CollectionKeysExtractor;
-import com.appmetr.hercules.serializers.AbstractHerculesSerializer;
+import com.datastax.driver.core.TypeCodec;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -16,7 +16,7 @@ public @interface IndexedCollection {
 
     Class itemClass() default Object.class;
 
-    Class<? extends AbstractHerculesSerializer> serializer() default AbstractHerculesSerializer.class;
+    Class<? extends TypeCodec> serializer() default TypeCodec.class;
 
     Class<? extends CollectionKeysExtractor> keyExtractorClass() default CollectionKeysExtractor.class;
 

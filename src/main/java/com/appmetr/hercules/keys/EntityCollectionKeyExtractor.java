@@ -1,7 +1,7 @@
 package com.appmetr.hercules.keys;
 
 import com.appmetr.hercules.manager.EntityManager;
-import me.prettyprint.hector.api.Serializer;
+import com.datastax.driver.core.TypeCodec;
 
 import javax.inject.Inject;
 import java.lang.reflect.Field;
@@ -27,9 +27,9 @@ public class EntityCollectionKeyExtractor<E, K> implements CollectionKeysExtract
         try {
             Collection indexedCollection = (Collection) collectionField.get(entity);
             if (indexedCollection != null) {
-                List<K> keys = new ArrayList<K>(indexedCollection.size());
+                List<K> keys = new ArrayList<>(indexedCollection.size());
                 for (Object entityInIndex : indexedCollection) {
-                    keys.add(em.<Object, K>getPK(entityInIndex));
+                    keys.add(em.getPK(entityInIndex));
                 }
                 return keys;
             } else {
@@ -40,7 +40,7 @@ public class EntityCollectionKeyExtractor<E, K> implements CollectionKeysExtract
         }
     }
 
-    @Override public Serializer<K> getKeySerializer() {
+    @Override public TypeCodec<K> getKeySerializer() {
         return em.getPKSerializer(collectionEntityClass);
     }
 }

@@ -9,7 +9,8 @@ import com.appmetr.hercules.model.EntityWithCollection;
 import com.appmetr.hercules.model.TestEntity;
 import com.google.common.primitives.Longs;
 import com.google.inject.Inject;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
+
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -48,7 +49,7 @@ public class EntityWithCollectionDAO extends AbstractDAO<EntityWithCollection, S
 
     @PrePersist public EntityWithCollection preSave(EntityWithCollection entity) {
         if (entity.getEntities() != null && entity.getEntities().size() > 0) {
-            List<String> keys = new ArrayList<String>(entity.getEntities().size());
+            List<String> keys = new ArrayList<>(entity.getEntities().size());
             for (TestEntity e : entity.getEntities()) {
                 keys.add(e.id);
             }
@@ -58,7 +59,7 @@ public class EntityWithCollectionDAO extends AbstractDAO<EntityWithCollection, S
         }
 
         if (entity.getSerializableKeys() != null && entity.getSerializableKeys().size() > 0) {
-            List<String> keys = new ArrayList<String>(entity.getSerializableKeys().size());
+            List<String> keys = new ArrayList<>(entity.getSerializableKeys().size());
             for (ParentFK k : entity.getSerializableKeys()) {
                 keys.add(k.parent);
             }

@@ -3,7 +3,7 @@ package com.appmetr.hercules.metadata;
 import com.appmetr.hercules.annotations.*;
 import com.appmetr.hercules.partition.NoPartitionProvider;
 import com.appmetr.hercules.partition.PartitionProvider;
-import com.appmetr.hercules.serializers.AbstractHerculesSerializer;
+import com.datastax.driver.core.TypeCodec;
 
 import java.lang.reflect.Field;
 
@@ -73,7 +73,7 @@ public class WideEntityMetadataExtractor {
             Class rowKeyClass = rowKeyAnnotation.keyClass();
             rowKeyMetadata.setKeyClass(rowKeyClass);
 
-            if (!rowKeyAnnotation.serializer().equals(AbstractHerculesSerializer.class)) {
+            if (!rowKeyAnnotation.serializer().equals(TypeCodec.class)) {
                 rowKeyMetadata.setSerializer(rowKeyAnnotation.serializer());
             } else if (rowKeyClass.isAnnotationPresent(Serializer.class)) {
                 rowKeyMetadata.setSerializer(((Serializer) rowKeyClass.getAnnotation(Serializer.class)).value());
@@ -94,7 +94,7 @@ public class WideEntityMetadataExtractor {
             Class topKeyClass = topKeyAnnotation.keyClass();
             topKeyMetadata.setKeyClass(topKeyAnnotation.keyClass());
 
-            if (!topKeyAnnotation.serializer().equals(AbstractHerculesSerializer.class)) {
+            if (!topKeyAnnotation.serializer().equals(TypeCodec.class)) {
                 topKeyMetadata.setSerializer(topKeyAnnotation.serializer());
             } else if (topKeyClass.isAnnotationPresent(Serializer.class)) {
                 topKeyMetadata.setSerializer(((Serializer) topKeyClass.getAnnotation(Serializer.class)).value());
@@ -123,7 +123,7 @@ public class WideEntityMetadataExtractor {
                 rowKeyMetadata.setKeyClass(rowKeyClass);
 
                 RowKey rowKeyAnnotation = field.getAnnotation(RowKey.class);
-                if (!rowKeyAnnotation.serializer().equals(AbstractHerculesSerializer.class)) {
+                if (!rowKeyAnnotation.serializer().equals(TypeCodec.class)) {
                     rowKeyMetadata.setSerializer(rowKeyAnnotation.serializer());
                 } else if (rowKeyClass.isAnnotationPresent(Serializer.class)) {
                     rowKeyMetadata.setSerializer(((Serializer) rowKeyClass.getAnnotation(Serializer.class)).value());
@@ -148,7 +148,7 @@ public class WideEntityMetadataExtractor {
                 topKeyMetadata.setKeyClass(field.getType());
 
                 TopKey topKeyAnnotation = field.getAnnotation(TopKey.class);
-                if (!topKeyAnnotation.serializer().equals(AbstractHerculesSerializer.class)) {
+                if (!topKeyAnnotation.serializer().equals(TypeCodec.class)) {
                     topKeyMetadata.setSerializer(topKeyAnnotation.serializer());
                 } else if (topKeyClass.isAnnotationPresent(Serializer.class)) {
                     topKeyMetadata.setSerializer(((Serializer) topKeyClass.getAnnotation(Serializer.class)).value());

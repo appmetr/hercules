@@ -35,16 +35,17 @@ import com.appmetr.hercules.metadata.WideEntityMetadataExtractor;
 import com.appmetr.hercules.mutations.ExecutableMutation;
 import com.appmetr.hercules.mutations.MutationsQueue;
 import com.appmetr.hercules.partition.PartitioningStarter;
+import com.datastax.driver.core.AbstractTableMetadata;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.TypeCodec;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
-import me.prettyprint.hector.api.Cluster;
-import me.prettyprint.hector.api.Keyspace;
-import me.prettyprint.hector.api.ddl.ColumnFamilyDefinition;
-import me.prettyprint.hector.api.ddl.ComparatorType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Hercules {
 
@@ -54,14 +55,14 @@ public class Hercules {
 
     @Inject HerculesConfig config;
 
-    private Map<Class, EntityMetadata> entityClassMetadataCache = new HashMap<Class, EntityMetadata>();
-    private Map<Class, WideEntityMetadata> wideEntityClassMetadataCache = new HashMap<Class, WideEntityMetadata>();
+    private Map<Class, EntityMetadata> entityClassMetadataCache = new HashMap<>();
+    private Map<Class, WideEntityMetadata> wideEntityClassMetadataCache = new HashMap<>();
 
     @Inject EntityMetadataExtractor metadataExtractor;
     @Inject WideEntityMetadataExtractor wideMetadataExtractor;
 
     private Cluster cluster;
-    private Keyspace keyspace;
+    private String keyspace;
 
     @Inject private Injector injector;
     @Inject private DataDriver dataDriver;
@@ -73,15 +74,27 @@ public class Hercules {
 
 
     public void init() {
-        cluster = dataDriver.getOrCreateCluster(config.getClusterName(), config.getCassandraHost(),
-                config.getMaxActiveConnections(), config.getMaxConnectTimeMillis(),
-                config.getCassandraThriftSocketTimeout(), config.getMaxWaitTimeWhenExhausted());
+        cluster = dataDriver.getOrCreateCluster(
+                config.getClusterName(),
+                config.getCassandraHost(),
+                config.getMaxActiveConnections(),
+                config.getMaxConnectTimeMillis()
+        );
+        initCodecs();
+
+        cluster.connect();
         keyspace = dataDriver.getOrCreateKeyspace(config.getKeyspaceName(), config.getReplicationFactor(), cluster);
 
         initEntities();
 
         new Thread(mutationsQueue).start();
         new Thread(partitioningStarter).start();
+    }
+
+    private void initCodecs() {
+        for (TypeCodec typeCodec : config.getCodecs()) {
+            cluster.getConfiguration().getCodecRegistry().register(typeCodec);
+        }
     }
 
     public void shutdown() {
@@ -92,22 +105,15 @@ public class Hercules {
     }
 
     public Set<String> getColumnFamilies() {
-        List<ColumnFamilyDefinition> columnFamilies = cluster.describeKeyspace(getKeyspaceName()).getCfDefs();
-        Set<String> columnFamiliesNames = new HashSet<String>();
-
-        for (ColumnFamilyDefinition cf : columnFamilies) {
-            columnFamiliesNames.add(cf.getName());
-        }
-
-        return columnFamiliesNames;
+        Collection<TableMetadata> tables = cluster.getMetadata().getKeyspace(getKeyspaceName()).getTables();
+        return tables
+                .stream()
+                .map(AbstractTableMetadata::getName)
+                .collect(Collectors.toSet());
     }
 
     public boolean checkAndCreateColumnFamily(String cfName) {
-        return checkAndCreateColumnFamily(cfName, ComparatorType.UTF8TYPE);
-    }
-
-    public boolean checkAndCreateColumnFamily(String cfName, ComparatorType comparator) {
-        return dataDriver.checkAndCreateColumnFamily(cluster, config.getKeyspaceName(), cfName, comparator);
+        return dataDriver.checkAndCreateColumnFamily(cluster, config.getKeyspaceName(), cfName);
     }
 
     public boolean deleteColumnFamily(String cfName) {
@@ -130,7 +136,7 @@ public class Hercules {
             EntityMetadata metadata = metadataExtractor.extract(entityClass);
             entityClassMetadataCache.put(entityClass, metadata);
 
-            checkAndCreateColumnFamily(metadata.getColumnFamily(), metadata.getComparatorType());
+            checkAndCreateColumnFamily(metadata.getColumnFamily());
 
         }
         //We should have extracted metadata before create indexes
@@ -148,7 +154,7 @@ public class Hercules {
             WideEntityMetadata metadata = wideMetadataExtractor.extract(wideEntityClass);
             wideEntityClassMetadataCache.put(wideEntityClass, metadata);
 
-            checkAndCreateColumnFamily(metadata.getColumnFamily(), metadata.getComparatorType());
+            checkAndCreateColumnFamily(metadata.getColumnFamily());
         }
     }
 
@@ -175,7 +181,7 @@ public class Hercules {
     public Set<ExecutableMutation> getPartitionMutations() {
         final Set<String> columnFamilies = getColumnFamilies();
 
-        Set<ExecutableMutation> mutations = new HashSet<ExecutableMutation>();
+        Set<ExecutableMutation> mutations = new HashSet<>();
 
         for (final Class partitionEntityClass : config.getWideEntityClasses()) {
             if (!partitionEntityClass.isAnnotationPresent(Partitioned.class)) {
@@ -188,7 +194,7 @@ public class Hercules {
                 if (!columnFamilies.contains(cfFullName)) {
                     mutations.add(new ExecutableMutation(ExecutableMutation.MutationType.CREATE, cfFullName) {
                         @Override public void execute() throws Exception {
-                            checkAndCreateColumnFamily(getCfName(), getWideMetadata(partitionEntityClass).getComparatorType());
+                            checkAndCreateColumnFamily(getCfName());
                             columnFamilies.add(getCfName());
                             logger.info("Created partition: " + getCfName());
                         }
@@ -208,7 +214,7 @@ public class Hercules {
 
     public Cluster getCluster() { return cluster; }
 
-    public Keyspace getKeyspace() { return keyspace; }
+    public String getKeyspace() { return keyspace; }
 
     public String getKeyspaceName() { return config.getKeyspaceName(); }
 
@@ -217,6 +223,7 @@ public class Hercules {
     public int getReplicationFactor() { return config.getReplicationFactor(); }
 
     public boolean isSchemaModificationEnabled() { return config.isSchemaModificationEnabled(); }
+    public boolean isSchemaModificationDisabled() { return !isSchemaModificationEnabled(); }
 
     public Injector getInjector() { return injector; }
 

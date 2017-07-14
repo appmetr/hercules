@@ -28,7 +28,7 @@ public class MutationsQueue implements Runnable {
 
     private Logger logger = LoggerFactory.getLogger(MutationsQueue.class);
 
-    private PriorityBlockingQueue<ExecutableMutation> queue = new PriorityBlockingQueue<ExecutableMutation>();
+    private PriorityBlockingQueue<ExecutableMutation> queue = new PriorityBlockingQueue<>();
     private volatile Thread pollingThread = null;
 
     @Override

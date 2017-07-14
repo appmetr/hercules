@@ -1,7 +1,7 @@
 package com.appmetr.hercules.metadata;
 
 import com.appmetr.hercules.keys.ForeignKey;
-import com.appmetr.hercules.serializers.AbstractHerculesSerializer;
+import com.datastax.driver.core.TypeCodec;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -13,14 +13,14 @@ public class EntityMetadata extends AbstractMetadata {
     private KeyMetadata primaryKeyMetadata;
     private boolean isPrimaryKeyGenerated = false;
 
-    private Map<Class<? extends ForeignKey>, ForeignKeyMetadata> indexes = new HashMap<Class<? extends ForeignKey>, ForeignKeyMetadata>();
+    private Map<Class<? extends ForeignKey>, ForeignKeyMetadata> indexes = new HashMap<>();
     private boolean createPrimaryKeyIndex = false;
-    private Map<String, CollectionIndexMetadata> collectionIndexes = new HashMap<String, CollectionIndexMetadata>();
+    private Map<String, CollectionIndexMetadata> collectionIndexes = new HashMap<>();
 
-    private Map<Field, String> fieldToColumn = new HashMap<Field, String>();
-    private Map<String, Class> columnClasses = new HashMap<String, Class>();
-    private Map<String, Class<? extends AbstractHerculesSerializer>> columnSerializers = new HashMap<String, Class<? extends AbstractHerculesSerializer>>();
-    List<String> notNullColumns = new ArrayList<String>();
+    private Map<Field, String> fieldToColumn = new HashMap<>();
+    private Map<String, Class> columnClasses = new HashMap<>();
+    private Map<String, Class<? extends TypeCodec>> columnSerializers = new HashMap<>();
+    List<String> notNullColumns = new ArrayList<>();
 
     public KeyMetadata getPrimaryKeyMetadata() {
         return primaryKeyMetadata;
@@ -86,15 +86,15 @@ public class EntityMetadata extends AbstractMetadata {
 
     public void setColumnClass(String name, Class clazz) { columnClasses.put(name, clazz); }
 
-    public Map<String, Class<? extends AbstractHerculesSerializer>> getColumnSerializers() {
+    public Map<String, Class<? extends TypeCodec>> getColumnSerializers() {
         return columnSerializers;
     }
 
-    public void setColumnSerializers(Map<String, Class<? extends AbstractHerculesSerializer>> columnSerializers) { this.columnSerializers = columnSerializers; }
+    public void setColumnSerializers(Map<String, Class<? extends TypeCodec>> columnSerializers) { this.columnSerializers = columnSerializers; }
 
-    public Class<? extends AbstractHerculesSerializer> getColumnSerializer(String name) { return columnSerializers.get(name); }
+    public Class<? extends TypeCodec> getColumnSerializer(String name) { return columnSerializers.get(name); }
 
-    public void setColumnSerializer(String name, Class<? extends AbstractHerculesSerializer> clazz) { columnSerializers.put(name, clazz); }
+    public void setColumnSerializer(String name, Class<? extends TypeCodec> clazz) { columnSerializers.put(name, clazz); }
 
     public List<String> getNotNullColumns() {
         return notNullColumns;
