@@ -34,14 +34,4 @@ public class TestWideEntitySerializer extends TypeCodec<TestWideEntity> {
     @Override public String format(TestWideEntity testWideEntity) throws InvalidTypeException {
         return null;
     }
-    /*@Override public ByteBuffer toByteBuffer(TestWideEntity obj) {
-        return ByteBuffer.wrap(SerializationUtils.serialize(obj));
-    }
-
-    @Override public TestWideEntity fromByteBuffer(ByteBuffer byteBuffer) {
-        TestWideEntity entity = new TestWideEntity();
-        SerializationUtils.deserialize(BytesArraySerializer.get().fromByteBuffer(byteBuffer), entity);
-
-        return entity;
-    }*/
 }
