@@ -11,6 +11,7 @@ import com.appmetr.monblank.StopWatch;
 import com.datastax.driver.core.*;
 import com.datastax.driver.core.querybuilder.*;
 import com.datastax.driver.core.schemabuilder.CreateKeyspace;
+import com.datastax.driver.core.schemabuilder.Drop;
 import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -21,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.datastax.driver.core.ConsistencyLevel.QUORUM;
@@ -70,7 +72,7 @@ public class CqlDataDriver implements DataDriver {
                 .setConsistencyLevel(QUORUM)
                 .setSerialConsistencyLevel(ConsistencyLevel.SERIAL);
 
-        execute(statement);
+        execute(session -> session.execute(statement));
         return keyspaceName;
     }
 
@@ -94,7 +96,7 @@ public class CqlDataDriver implements DataDriver {
                 .withOptions()
                 .compactStorage();
 
-        execute(table, rc -> created.setTrue());
+        execute(session -> session.execute(table), rc -> created.setTrue());
 
         return created.booleanValue();
     }
@@ -122,8 +124,11 @@ public class CqlDataDriver implements DataDriver {
                                       boolean awaitAgreement) {
         if (!hercules.isSchemaModificationEnabled()) return false;
 
+        Drop dropCF = dropTable(keyspaceName, quote(cfName)).ifExists();
+
         MutableBoolean deleted = new MutableBoolean(false);
-        execute(dropTable(keyspaceName, quote(cfName)).ifExists(), rs -> deleted.setTrue());
+
+        execute(session -> session.execute(dropCF), rs -> deleted.setTrue());
         return deleted.booleanValue();
     }
 
@@ -135,12 +140,12 @@ public class CqlDataDriver implements DataDriver {
 
     public <R, T> int getRowCount(String keyspace,
                                   String columnFamily,
-                                  DataOperationsProfile dataOperationsProfile,
+                                  DataOperationsProfile profile,
                                   RowSerializer<R, T> rowSerializer,
                                   R from,
                                   R to,
                                   Integer count) {
-        Select select = select().from(quote(keyspace), quote(columnFamily));
+        Select select = select().from(keyspace, quote(columnFamily));
         if (from != null) {
             select.where(gte(token(primaryKey(keyspace, columnFamily)), token(from)));
         }
@@ -149,17 +154,11 @@ public class CqlDataDriver implements DataDriver {
         }
         MutableInt totalRows = new MutableInt();
 
-
-        StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Get row count " + columnFamily);
-        try {
-            execute(select, rs -> totalRows.add(rs.one().get("count", Integer.class)));
-        } finally {
-            long time = monitor.stop();
-            if (dataOperationsProfile != null) {
-                dataOperationsProfile.ms += time;
-                dataOperationsProfile.dbQueries++;
-            }
-        }
+        execute(executeAndProfile(
+                select,
+                monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Get row count " + columnFamily),
+                profile),
+                rs -> totalRows.add(rs.one().get("count", Integer.class)));
         return totalRows.intValue();
     }
 
@@ -176,7 +175,7 @@ public class CqlDataDriver implements DataDriver {
 
     public <R, T> HerculesQueryResult<T> getRow(String keyspace,
                                                 String columnFamily,
-                                                DataOperationsProfile dataOperationsProfile,
+                                                DataOperationsProfile profile,
                                                 RowSerializer<R, T> rowSerializer,
                                                 R rowKey) {
         String primaryKey = primaryKey(keyspace, columnFamily);
@@ -187,10 +186,17 @@ public class CqlDataDriver implements DataDriver {
                 .where(eq(primaryKey, rowSerializer.getRowKeySerializer().serialize(rowKey, protocol())));
 
         HerculesMultiQueryResult<R, T> results = new HerculesMultiQueryResult<>();
-        execute(stmt, rs -> {
-            buildQueryResult(primaryKey, topKey, rs, Integer.MAX_VALUE, rowSerializer, results, dataOperationsProfile);
-
-        });
+        execute(executeAndProfile(stmt,
+                monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Get slice " + columnFamily),
+                profile),
+                rs -> buildQueryResult(
+                        primaryKey,
+                        topKey,
+                        rs,
+                        Integer.MAX_VALUE,
+                        rowSerializer,
+                        results,
+                        profile));
 
         //todo: refactor
         HerculesQueryResult<T> result = new HerculesQueryResult<>();
@@ -203,7 +209,7 @@ public class CqlDataDriver implements DataDriver {
 
     public <R, T> HerculesMultiQueryResult<R, T> getRows(String keyspace,
                                                          String columnFamily,
-                                                         DataOperationsProfile dataOperationsProfile,
+                                                         DataOperationsProfile profile,
                                                          RowSerializer<R, T> rowSerializer,
                                                          Iterable<R> rowKeys) {
         String primaryKey = primaryKey(keyspace, columnFamily);
@@ -214,12 +220,22 @@ public class CqlDataDriver implements DataDriver {
         HerculesMultiQueryResult<R, T> result = new HerculesMultiQueryResult<>();
         for (List<ByteBuffer> chunk : Iterables.partition(serializedKeys, 100)) {
             Statement stmt = select()
-                    .from(quote(keyspace), quote(columnFamily))
+                    .from(keyspace, quote(columnFamily))
                     .where(in(primaryKey, chunk));
 
-            execute(stmt, rs -> {
-                buildQueryResult(primaryKey, topKey, rs, Integer.MAX_VALUE, rowSerializer, result, dataOperationsProfile);
-            });
+            //
+            execute(executeAndProfile(
+                    stmt,
+                    monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Get slice " + columnFamily),
+                    profile),
+                    rs -> buildQueryResult(
+                            primaryKey,
+                            topKey,
+                            rs,
+                            Integer.MAX_VALUE,
+                            rowSerializer,
+                            result,
+                            profile));
         }
 
         return result;
@@ -227,43 +243,44 @@ public class CqlDataDriver implements DataDriver {
 
     public <R, T> HerculesMultiQueryResult<R, T> getAllRows(String keyspace,
                                                             String columnFamily,
-                                                            DataOperationsProfile dataOperationsProfile,
+                                                            DataOperationsProfile profile,
                                                             RowSerializer<R, T> rowSerializer) {
-        Select stmt = select().from(quote(keyspace), quote(columnFamily));
+        Select stmt = select().from(keyspace, quote(columnFamily));
 
         HerculesMultiQueryResult<R, T> results = new HerculesMultiQueryResult<>();
-        execute(stmt, rs -> {
-            buildQueryResult(
-                    primaryKey(keyspace, columnFamily),
-                    topKey(keyspace, columnFamily),
-                    rs, Integer.MAX_VALUE,
-                    rowSerializer,
-                    results,
-                    dataOperationsProfile);
 
-        });
+        execute(executeAndProfile(stmt,
+                monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Get range slice " + columnFamily),
+                profile),
+                rs -> buildQueryResult(
+                        primaryKey(keyspace, columnFamily),
+                        topKey(keyspace, columnFamily),
+                        rs, Integer.MAX_VALUE,
+                        rowSerializer,
+                        results,
+                        profile));
 
         return results;
     }
 
     public <R, T> HerculesQueryResult<T> getSlice(String keyspace,
                                                   String columnFamily,
-                                                  DataOperationsProfile dataOperationsProfile,
+                                                  DataOperationsProfile profile,
                                                   RowSerializer<R, T> rowSerializer,
                                                   R rowKey,
                                                   SliceDataSpecificator<T> sliceDataSpecificator) {
-        HerculesMultiQueryResult<R, T> queryResult = getSlice(keyspace, columnFamily, dataOperationsProfile, rowSerializer, singletonList(rowKey), sliceDataSpecificator);
+        HerculesMultiQueryResult<R, T> queryResult = getSlice(keyspace, columnFamily, profile, rowSerializer, singletonList(rowKey), sliceDataSpecificator);
 
         if (queryResult.hasResult() && queryResult.containsKey(rowKey)) {
-            return new HerculesQueryResult<T>(queryResult.getEntries().get(rowKey));
+            return new HerculesQueryResult<>(queryResult.getEntries().get(rowKey));
         }
 
-        return new HerculesQueryResult<T>();
+        return new HerculesQueryResult<>();
     }
 
     public <R, T> HerculesMultiQueryResult<R, T> getSlice(String keyspace,
                                                           String columnFamily,
-                                                          DataOperationsProfile dataOperationsProfile,
+                                                          DataOperationsProfile profile,
                                                           RowSerializer<R, T> rowSerializer,
                                                           Iterable<R> rowKeys,
                                                           SliceDataSpecificator<T> sliceDataSpecificator) {
@@ -276,19 +293,23 @@ public class CqlDataDriver implements DataDriver {
         HerculesMultiQueryResult<R, T> result = new HerculesMultiQueryResult<>();
 
         for (List<ByteBuffer> chunk : Iterables.partition(serializedKeys, 100)) {
-            Select select = select().from(quote(keyspace), quote(columnFamily));
+            Select select = select().from(keyspace, quote(columnFamily));
             select.where(in(primaryKey, chunk));
 
-            StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Get range slice " + columnFamily);
-            try {
-                execute(select, rs -> buildQueryResult(primaryKey, topKey, rs, Integer.MAX_VALUE, rowSerializer, result, dataOperationsProfile));
-            } finally {
-                long time = monitor.stop();
-                if (dataOperationsProfile != null) {
-                    dataOperationsProfile.ms += time;
-                    dataOperationsProfile.dbQueries++;
-                }
-            }
+
+            execute(executeAndProfile(
+                    select,
+                    monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Get range slice " + columnFamily),
+                    profile),
+                    rs -> buildQueryResult(
+                            primaryKey,
+                            topKey,
+                            rs,
+                            Integer.MAX_VALUE,
+                            rowSerializer,
+                            result,
+                            profile));
+
         }
         return result;
     }
@@ -297,7 +318,7 @@ public class CqlDataDriver implements DataDriver {
         return serializer.serialize(rowKey, protocol());
     }
 
-    private <R, T> List<ByteBuffer> serializedKeys(Iterable<R> rowKeys, TypeCodec<R> serializer) {
+    private <R> List<ByteBuffer> serializedKeys(Iterable<R> rowKeys, TypeCodec<R> serializer) {
         List<R> keys = new ArrayList<>();
         rowKeys.forEach(keys::add);
         return keys
@@ -307,7 +328,7 @@ public class CqlDataDriver implements DataDriver {
     }
 
     public <R, T> HerculesMultiQueryResult<R, T> getRangeSlice(String keyspace, String columnFamily,
-                                                               DataOperationsProfile dataOperationsProfile,
+                                                               DataOperationsProfile profile,
                                                                RowSerializer<R, T> rowSerializer,
                                                                R rowFrom,
                                                                R rowTo,
@@ -317,88 +338,101 @@ public class CqlDataDriver implements DataDriver {
         String primaryKey = primaryKey(keyspace, columnFamily);
         String topKey = topKey(keyspace, columnFamily);
 
-        Select select = select().from(quote(keyspace), quote(columnFamily));
+        Select select = select().from(keyspace, quote(columnFamily));
         if (rowFrom != null) {
             select.where(gte(token(primaryKey), token(rowFrom)));
         }
         if (rowTo != null) {
             select.where(lte(token(primaryKey), token(rowTo)));
         }
-
-
-        StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Get range slice " + columnFamily);
-
+        //
         HerculesMultiQueryResult<R, T> result = new HerculesMultiQueryResult<>();
-        try {
-            execute(select, rs -> buildQueryResult(primaryKey, topKey, rs, rowCount, rowSerializer, result, dataOperationsProfile));
-        } finally {
-            long time = monitor.stop();
-            if (dataOperationsProfile != null) {
-                dataOperationsProfile.ms += time;
-                dataOperationsProfile.dbQueries++;
-            }
-        }
+
+        execute(executeAndProfile(
+                select,
+                monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Get range slice " + columnFamily),
+                profile),
+                rs -> buildQueryResult(
+                        primaryKey,
+                        topKey,
+                        rs,
+                        rowCount,
+                        rowSerializer,
+                        result,
+                        profile));
 
         return result;
     }
 
     public <R, T> List<R> getKeyRange(String keyspace,
                                       String columnFamily,
-                                      DataOperationsProfile dataOperationsProfile,
+                                      DataOperationsProfile profile,
                                       RowSerializer<R, T> rowSerializer,
                                       R from,
                                       R to,
                                       Integer count) {
         String primaryKey = primaryKey(keyspace, columnFamily);
 
-        Select select = select().from(quote(keyspace), quote(columnFamily));
+        Select select = select().from(keyspace, quote(columnFamily));
 
         List<R> keys = new ArrayList<>();
-        execute(select, rs -> buildQueryResult(rs, count, row -> {
-            ByteBuffer primaryKeyValue = row.get(primaryKey, codecForColumn(rs.getColumnDefinitions().getType(primaryKey)));
-            keys.add(rowSerializer.getRowKeySerializer().deserialize(primaryKeyValue, protocol()));
-        }));
+        execute(executeAndProfile(
+                select,
+                monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Get key range " + columnFamily),
+                profile)
+                ,
+                rs -> buildQueryResult(
+                        rs,
+                        count,
+                        row -> {
+                            ByteBuffer primaryKeyValue = row.get(primaryKey, codecForColumn(rs.getColumnDefinitions().getType(primaryKey)));
+                            keys.add(rowSerializer.getRowKeySerializer().deserialize(primaryKeyValue, protocol()));
+                        }));
         return keys;
     }
 
     public <R, T> void insert(String keyspace,
                               String columnFamily,
-                              DataOperationsProfile dataOperationsProfile,
+                              DataOperationsProfile profile,
                               RowSerializer<R, T> rowSerializer,
                               R rowKeyValue,
                               T topKeyValue,
                               Object value,
                               int ttl) {
+        MutableInt serializedDataSize = new MutableInt(0);
+
+
+        Statement stmt;
         String primaryKeyName = primaryKey(keyspace, columnFamily);
         String topKeyName = topKey(keyspace, columnFamily);
+        if (value == null) {
+            stmt = QueryBuilder.delete()
+                    .from(keyspace, quote(columnFamily))
+                    .where(eq(primaryKeyName, serializedKey(rowKeyValue, rowSerializer.getRowKeySerializer())));
 
-        int serializedDataSize = 0;
-        StopWatch monitor = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Insert " + columnFamily);
-
-        try {
-            Statement toDo;
-            if (value == null) {
-                toDo = QueryBuilder.delete()
-                        .from(keyspace, quote(columnFamily))
-                        .where(eq(primaryKeyName, serializedKey(rowKeyValue, rowSerializer.getRowKeySerializer())));
-
-            } else {
-                TypeCodec serializer = rowSerializer.hasValueSerializer(topKeyValue) ? rowSerializer.getValueSerializer(topKeyValue) : serializerProvider.getSerializer(value);
-                toDo = insertInto(keyspace, quote(columnFamily))
-                        .value(primaryKeyName, serializedKey(rowKeyValue, rowSerializer.getRowKeySerializer()))
-                        .value(topKeyName, serializedKey(topKeyValue, rowSerializer.getTopKeySerializer()))
-                        .value(quote("value"), serializer.serialize(value, protocol()))
-                        .using(ttl(ttl));
-            }
-            execute(toDo);
-        } finally {
-            long time = monitor.stop();
-            if (dataOperationsProfile != null) {
-                dataOperationsProfile.ms += time;
-                //dataOperationsProfile.bytes += serializedDataSize;
-                dataOperationsProfile.dbQueries++;
-            }
+        } else {
+            TypeCodec serializer = rowSerializer.hasValueSerializer(topKeyValue) ? rowSerializer.getValueSerializer(topKeyValue) : serializerProvider.getSerializer(value);
+            ByteBuffer serializedValue = serializer.serialize(value, protocol());
+            serializedDataSize.add(serializedValue.remaining());
+            stmt = insertInto(keyspace, quote(columnFamily))
+                    .value(primaryKeyName, serializedKey(rowKeyValue, rowSerializer.getRowKeySerializer()))
+                    .value(topKeyName, serializedKey(topKeyValue, rowSerializer.getTopKeySerializer()))
+                    .value(quote("value"), serializedValue)
+                    .using(ttl(ttl));
         }
+        execute(session -> {
+                    try {
+                        return session.execute(stmt);
+                    } finally {
+                        long time = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Insert " + columnFamily).stop();
+                        if (profile != null) {
+                            profile.ms += time;
+                            profile.bytes += serializedDataSize.intValue();
+                            profile.dbQueries++;
+                        }
+                    }
+                });
+
     }
 
     public <R, T> void insert(String keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R rowKey, Map<T, Object> values, Map<T, Integer> ttls) {
@@ -411,7 +445,13 @@ public class CqlDataDriver implements DataDriver {
         });
     }
 
-    public <R, T> void insert(String keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R rowKey, Map<T, Object> values, int ttl) {
+    public <R, T> void insert(String keyspace,
+                              String columnFamily,
+                              DataOperationsProfile dataOperationsProfile,
+                              RowSerializer<R, T> rowSerializer,
+                              R rowKey,
+                              Map<T, Object> values,
+                              int ttl) {
         Map<R, Map<T, Object>> valuesToInsert = Collections.singletonMap(rowKey, values);
 
         insert(keyspace, columnFamily, dataOperationsProfile, rowSerializer, valuesToInsert, (row, top) -> ttl);
@@ -432,11 +472,65 @@ public class CqlDataDriver implements DataDriver {
         });
     }
 
-    public <R, T> void delete(String keyspace, String columnFamily, DataOperationsProfile dataOperationsProfile, RowSerializer<R, T> rowSerializer, R rowKey) {
-        execute(QueryBuilder
+    private <R, T> void insert(String keyspace, String columnFamily,
+                               DataOperationsProfile profile,
+                               RowSerializer<R, T> rowSerializer,
+                               Map<R, Map<T, Object>> values,
+                               TTLProvider<R, T> ttlProvider) {
+
+        MutableInt serializedDataSize = new MutableInt(0);
+        for (R rowKey : values.keySet()) {
+            Batch batch = batch();
+            for (Map.Entry<T, Object> entry : values.get(rowKey).entrySet()) {
+                T topKey = entry.getKey();
+                Object value = entry.getValue();
+
+                if (value == null) {
+                    Delete.Where delete = QueryBuilder
+                            .delete()
+                            .from(keyspace, quote(columnFamily))
+                            .where(eq(primaryKey(keyspace, columnFamily), serializedKey(rowKey, rowSerializer.getRowKeySerializer())))
+                            .and(eq(topKey(keyspace, columnFamily), serializedKey(topKey, rowSerializer.getTopKeySerializer())));
+                    batch.add(delete);
+                } else {
+                    ByteBuffer serializedValue = serializedValue(rowSerializer, topKey, value);
+                    serializedDataSize.add(serializedValue.remaining());
+                    Insert insert =
+                            insertInto(keyspace, quote(columnFamily))
+                                    .value(primaryKey(keyspace, columnFamily), serializedKey(rowKey, rowSerializer.getRowKeySerializer()))
+                                    .value(topKey(keyspace, columnFamily), serializedKey(topKey, rowSerializer.getTopKeySerializer()))
+                                    .value(quote("value"), serializedValue);
+
+                    int ttl = ttlValue(ttlProvider, rowKey, topKey);
+
+                    if (ttl > 0) {
+                        insert.using(ttl(ttl));
+                    }
+
+                    batch.add(insert);
+                }
+            }
+            execute(session -> {
+                try {
+                    return session.execute(batch);
+                } finally {
+                    long time = monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Insert " + columnFamily).stop();
+                    if (profile != null) {
+                        profile.ms += time;
+                        profile.bytes += serializedDataSize.intValue();
+                        profile.dbQueries++;
+                    }
+                }
+            });
+        }
+    }
+
+    public <R, T> void delete(String keyspace, String columnFamily, DataOperationsProfile profile, RowSerializer<R, T> rowSerializer, R rowKey) {
+        Statement delete = QueryBuilder
                 .delete()
-                .from(quote(keyspace), quote(columnFamily))
-                .where(eq(primaryKey(keyspace, columnFamily), serializedKey(rowKey, rowSerializer.getRowKeySerializer()))));
+                .from(keyspace, quote(columnFamily))
+                .where(eq(primaryKey(keyspace, columnFamily), serializedKey(rowKey, rowSerializer.getRowKeySerializer())));
+        delete(delete, columnFamily, profile);
     }
 
     public <R, T> void delete(String keyspace, String columnFamily,
@@ -454,76 +548,35 @@ public class CqlDataDriver implements DataDriver {
         String primaryKeyName = primaryKey(keyspace, columnFamily);
         String topKeyName = topKey(keyspace, columnFamily);
 
-
         for (R rowKey : topKeysInRows.keySet()) {
-            Delete.Where delete = QueryBuilder
+            Statement delete = QueryBuilder
                     .delete()
-                    .from(quote(keyspace), quote(columnFamily))
+                    .from(keyspace, quote(columnFamily))
                     .where(eq(primaryKeyName, serializedKey(rowKey, rowSerializer.getRowKeySerializer())))
                     .and(in(topKeyName, serializedKeys(topKeysInRows.get(rowKey), rowSerializer.getTopKeySerializer())));
-            execute(delete);
+            delete(delete, columnFamily, dataOperationsProfile);
         }
-        //todo: make batch, group by row key
     }
 
-    private <R, T> void insert(String keyspace, String columnFamily,
-                               DataOperationsProfile dataOperationsProfile,
-                               RowSerializer<R, T> rowSerializer,
-                               Map<R, Map<T, Object>> values,
-                               TTLProvider<R, T> ttlProvider) {
-        TypeCodec<R> rowKeySerializer = rowSerializer.getRowKeySerializer();
-
-
-        int serializedDataSize = 0;
-        for (R rowKey : values.keySet()) {
-            Batch batch = batch();
-            for (Map.Entry<T, Object> entry : values.get(rowKey).entrySet()) {
-                T topKey = entry.getKey();
-                Object value = entry.getValue();
-
-                if (value == null) {
-                    Delete.Where delete = QueryBuilder
-                            .delete()
-                            .from(keyspace, quote(columnFamily))
-                            .where(eq(primaryKey(keyspace, columnFamily), serializedKey(rowKey, rowSerializer.getRowKeySerializer())))
-                            .and(eq(topKey(keyspace, columnFamily), serializedKey(topKey, rowSerializer.getTopKeySerializer())));
-                    batch.add(delete);
-                } else {
-                    Insert insert =
-                            insertInto(keyspace, quote(columnFamily))
-                                    .value(primaryKey(keyspace, columnFamily), serializedKey(rowKey, rowKeySerializer))
-                                    .value(topKey(keyspace, columnFamily), serializedKey(topKey, rowSerializer.getTopKeySerializer()))
-                                    .value(quote("value"), serializedValue(rowSerializer, topKey, value));
-
-                    int ttl = ttlValue(ttlProvider, rowKey, topKey);
-
-                    if (ttl > 0) {
-                        insert.using(ttl(ttl));
-                    }
-
-                    batch.add(insert);
-                }
-            }
-            execute(batch);
-        }
+    private void delete(Statement stmt, String columnFamily, DataOperationsProfile profile) {
+        execute(executeAndProfile(
+                stmt,
+                monitoring.start(HerculesMonitoringGroup.HERCULES_DD, "Delete " + columnFamily),
+                profile));
     }
 
     private <R, T> ByteBuffer serializedValue(RowSerializer<R, T> rowSerializer, T topKey, Object value) {
         return rowSerializer.getValueSerializer(topKey).serialize(value, protocol());
     }
 
-    private void execute(Statement stmt) {
-        execute(stmt, rc -> {
-        });
+    private void execute(Function<Session, ResultSet> f) {
+        execute(f, rs -> {});
     }
 
-    private void execute(Statement stmt, Consumer<ResultSet> consumer) {
-        logger.trace("trying to execute stmt {}", stmt);
+    private void execute(Function<Session, ResultSet> f, Consumer<ResultSet> consumer) {
         try (Session session = hercules.getCluster().newSession()) {
-            ResultSet rs = session.execute(stmt);
+            ResultSet rs = f.apply(session);
             consumer.accept(rs);
-        } catch (Exception e) {
-            logger.error("cannot execute stmt: {}", stmt.toString(), e);
         }
     }
 
@@ -585,6 +638,20 @@ public class CqlDataDriver implements DataDriver {
         results.setLastKey(lastKey);
     }
 
+    private Function<Session, ResultSet> executeAndProfile(Statement select, StopWatch monitor, DataOperationsProfile dataOperationsProfile) {
+        return session -> {
+            try {
+                return session.execute(select);
+            } finally {
+                long time = monitor.stop();
+                if (dataOperationsProfile != null) {
+                    dataOperationsProfile.ms += time;
+                    dataOperationsProfile.dbQueries++;
+                }
+            }
+        };
+    }
+
     private Object deserializeValue(ByteBuffer value, TypeCodec valueSerializer, DataOperationsProfile profile) {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
@@ -635,10 +702,8 @@ public class CqlDataDriver implements DataDriver {
         return hercules.getCluster().getConfiguration().getCodecRegistry().codecFor(type);
     }
 
-
     private interface TTLProvider<R, T> {
         int get(R row, T top);
 
     }
 }
-
