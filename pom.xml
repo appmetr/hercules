@@ -9,10 +9,17 @@
     <version>0.5.8-SNAPSHOT</version>
     <name>Hercules</name>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+
     <repositories>
         <repository>
-            <id>appmetr-repo</id>
-            <url>http://dl.bintray.com/appmetr/maven</url>
+            <id>jfrog</id>
+            <url>https://appmetr.jfrog.io/artifactory/maven/</url>
         </repository>
     </repositories>
 
@@ -25,8 +32,8 @@
 
     <distributionManagement>
         <repository>
-            <id>bintray</id>
-            <url>https://api.bintray.com/maven/appmetr/maven/hercules</url>
+            <id>jfrog</id>
+            <url>https://appmetr.jfrog.io/artifactory/maven/</url>
         </repository>
     </distributionManagement>
 
