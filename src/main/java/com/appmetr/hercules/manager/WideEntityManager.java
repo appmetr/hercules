@@ -1,5 +1,7 @@
 package com.appmetr.hercules.manager;
 
+import static java.util.Collections.singletonList;
+
 import com.appmetr.hercules.Hercules;
 import com.appmetr.hercules.HerculesMonitoringGroup;
 import com.appmetr.hercules.annotations.TopKey;
@@ -247,7 +249,7 @@ public class WideEntityManager {
     }
 
     public <E, R> void delete(Class<?> clazz, R rowKey, E entity, DataOperationsProfile dataOperationsProfile) {
-        deleteByKeys(clazz, rowKey, Arrays.asList(getTopKey(entity, getMetadata(entity.getClass()))), dataOperationsProfile);
+        deleteByKeys(clazz, rowKey, singletonList(getTopKey(entity, getMetadata(entity.getClass()))), dataOperationsProfile);
     }
 
     public <E, R, T> void delete(Class<?> clazz, R rowKey, Iterable<E> entities, DataOperationsProfile dataOperationsProfile) {
@@ -261,7 +263,7 @@ public class WideEntityManager {
     }
 
     public <R, T> void deleteByKey(Class<?> clazz, R rowKey, T topKey, DataOperationsProfile dataOperationsProfile) {
-        deleteByKeys(clazz, rowKey, Arrays.asList(topKey), dataOperationsProfile);
+        deleteByKeys(clazz, rowKey, singletonList(topKey), dataOperationsProfile);
     }
 
     public <R, T> void deleteByKeys(Class<?> clazz, R rowKey, Iterable<T> topKeys, DataOperationsProfile dataOperationsProfile) {
